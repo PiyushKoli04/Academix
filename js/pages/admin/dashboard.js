@@ -46,7 +46,7 @@ export async function renderDashboard(main, context) {
     </section>
 
     <div class="admin-grid admin-grid--wide-main">
-      <div class="admin-grid">
+      <div class="admin-col admin-col--main">
         <section class="admin-card">
           <div class="admin-card__head">
             <div><h2 class="admin-card__title">Quick actions</h2><p class="admin-card__sub">Everything you need to keep Academix current.</p></div>
@@ -88,7 +88,7 @@ export async function renderDashboard(main, context) {
         </section>
       </div>
 
-      <div class="admin-grid">
+      <div class="admin-col admin-col--side">
         <section class="admin-master-card">
           <div class="admin-master-card__top">
             <div>
@@ -109,14 +109,17 @@ export async function renderDashboard(main, context) {
             <button class="admin-card__action" type="button" data-edit-settings>Edit ${icon("arrow-right", "icon--xs")}</button>
           </div>
           <div class="admin-top-list">
-            <div class="admin-top-row">
-              <span class="admin-top-row__copy"><span class="admin-top-row__title">Contact email</span><span class="admin-top-row__meta">${escapeHtml(settings.contactEmail || "Not set")}</span></span>
+            <div class="admin-top-row admin-top-row--setting">
+              <span class="admin-top-row__title">Contact email</span>
+              <span class="admin-top-row__meta">${escapeHtml(settings.contactEmail || "Not set")}</span>
             </div>
-            <div class="admin-top-row">
-              <span class="admin-top-row__copy"><span class="admin-top-row__title">Announcement</span><span class="admin-top-row__meta">${escapeHtml(settings.announcement || "No announcement")}</span></span>
+            <div class="admin-top-row admin-top-row--setting">
+              <span class="admin-top-row__title">Announcement</span>
+              <span class="admin-top-row__meta">${escapeHtml(settings.announcement || "No announcement")}</span>
             </div>
-            <div class="admin-top-row">
-              <span class="admin-top-row__copy"><span class="admin-top-row__title">Version</span><span class="admin-top-row__meta">Academix ${escapeHtml(settings.version || "1.0.0")}</span></span>
+            <div class="admin-top-row admin-top-row--setting">
+              <span class="admin-top-row__title">Version</span>
+              <span class="admin-top-row__meta">Academix ${escapeHtml(settings.version || "1.0.0")}</span>
             </div>
           </div>
         </section>
