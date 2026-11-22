@@ -214,3 +214,68 @@ jobs:
           path: dist/*.apk
           if-no-files-found: error
           retention-days: 30
+
+  # Installs the built APK on an emulator, opens it, and saves the log so a
+  # launch crash can be read without a PC or USB debugging.
+  # Download the "launch-test-log" artifact and open logcat.txt.
+  # This job is advisory: it never fails the build.
+  test-launch:
+    needs: build-apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: academix-apk
+          path: apk
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Write launch script
+        run: |
+          cat > launch-test.sh <<'SH'
+          #!/usr/bin/env bash
+          APK="$(ls apk/*.apk | head -1)"
+          PKG="in.co.syntaxsyndicate.academix"
+          adb logcat -c
+          adb install -r "$APK" 2>&1 | tee install.txt
+          adb shell pm list packages | grep -i chrome | tee chrome.txt || echo "NO CHROME ON EMULATOR" | tee chrome.txt
+          adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 2>&1 | tee launch.txt
+          sleep 20
+          adb shell dumpsys activity activities | grep -iE "mResumedActivity|topResumedActivity" | tee resumed.txt
+          adb exec-out screencap -p > screen.png
+          adb logcat -d > logcat.txt
+          grep -iE "FATAL|AndroidRuntime|academix|androidbrowserhelper|ActivityNotFound" logcat.txt > errors.txt || true
+          SH
+          chmod +x launch-test.sh
+
+      - name: Launch on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          script: bash launch-test.sh
+
+      - name: Upload launch log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: launch-test-log
+          path: |
+            logcat.txt
+            errors.txt
+            install.txt
+            chrome.txt
+            launch.txt
+            resumed.txt
+            screen.png
+          if-no-files-found: warn
+          retention-days: 14
