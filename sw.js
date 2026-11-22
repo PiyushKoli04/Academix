@@ -1,4 +1,4 @@
-const CACHE_VERSION = "academix-v5";
+const CACHE_VERSION = "academix-v6";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const FONT_CACHE = `${CACHE_VERSION}-fonts`;
 

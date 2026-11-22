@@ -375,7 +375,7 @@ export async function renderStructure(main, context) {
             <div class="field">
               <span class="field__label">Color</span>
               <div class="color-swatches" data-color-swatches>
-                ${SUBJECT_COLORS.map((color) => `<button class="color-swatch ${color === selectedColor ? "is-selected" : ""}" type="button" data-color-value="${escapeAttr(color)}" style="--swatch:${escapeAttr(color)}" aria-label="Use ${escapeAttr(color)}"></button>`).join("")}
+                ${SUBJECT_COLORS.map((color) => `<button class="color-swatch ${color === selectedColor ? "is-selected" : ""}" type="button" data-color-value="${escapeAttr(color)}" style="--swatch:${escapeAttr(color)}; background-color:${escapeAttr(color)};" aria-label="Use ${escapeAttr(color)}"></button>`).join("")}
               </div>
             </div>
           </div>
@@ -475,7 +475,7 @@ export async function renderStructure(main, context) {
             <div class="field">
               <span class="field__label">Color</span>
               <div class="color-swatches" data-color-swatches>
-                ${SUBJECT_COLORS.map((color) => `<button class="color-swatch ${color === selectedColor ? "is-selected" : ""}" type="button" data-color-value="${escapeAttr(color)}" style="--swatch:${escapeAttr(color)}" aria-label="Use ${escapeAttr(color)}"></button>`).join("")}
+                ${SUBJECT_COLORS.map((color) => `<button class="color-swatch ${color === selectedColor ? "is-selected" : ""}" type="button" data-color-value="${escapeAttr(color)}" style="--swatch:${escapeAttr(color)}; background-color:${escapeAttr(color)};" aria-label="Use ${escapeAttr(color)}"></button>`).join("")}
               </div>
             </div>
           </div>
@@ -565,7 +565,7 @@ function subjectRowHTML(subject, branchMap) {
   const branches = (subject.branchIds || []).map((id) => branchMap.get(id)).filter(Boolean);
   const moduleCount = (subject.modules || []).length;
   return `<div class="structure-subject">
-    <span class="structure-subject__icon">${icon(subject.icon || "book-open")}</span>
+    <span class="structure-subject__icon" style="background-color:${escapeAttr(subject.color || "var(--surface-soft)")};">${icon(subject.icon || "book-open")}</span>
     <div class="structure-subject__copy">
       <p class="structure-subject__title">${escapeHtml(subject.name)}</p>
       <p class="structure-subject__meta">${escapeHtml(subject.code || "No code")} · ${moduleCount} module${moduleCount === 1 ? "" : "s"}${branches.length > 1 ? ` · ${branches.map((branch) => branch.shortName || branch.name).join(", ")}` : ""}</p>
