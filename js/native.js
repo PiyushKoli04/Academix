@@ -1,15 +1,19 @@
-// Bridge to the Academix Android app (WebView). In a normal browser every
-// function here is inert and isNativeApp() is false.
-const pending = new Map();
-let seq = 0;
+// Bridge to the Academix Android app (WebView). In a normal browser nothing
+// here is active and isNativeApp() is false.
+//
+// Google blocks sign-in inside embedded WebViews, so the app opens
+// /app-login.html in the phone's real browser. That page signs in with Google
+// and sends the result back to the app (academix://auth?...). The app then
+// calls window.__academixBrowserAuth(payload) here.
+const listeners = new Set();
+let queued = window.__academixPendingAuth || null;
 
-window.__academixNativeResult = (id, value, error) => {
-  const entry = pending.get(id);
-  if (!entry) return;
-  pending.delete(id);
-  window.clearTimeout(entry.timer);
-  if (error) entry.reject(new Error(error));
-  else entry.resolve(value);
+window.__academixBrowserAuth = (payload) => {
+  if (!listeners.size) {
+    queued = payload;
+    return;
+  }
+  listeners.forEach((fn) => fn(payload));
 };
 
 export function isNativeApp() {
@@ -20,26 +24,20 @@ export function isNativeApp() {
   }
 }
 
-function call(method) {
-  return new Promise((resolve, reject) => {
-    const id = `n${++seq}_${Date.now()}`;
-    const timer = window.setTimeout(() => {
-      pending.delete(id);
-      reject(new Error("The Google request timed out. Please try again."));
-    }, 120_000);
-    pending.set(id, { resolve, reject, timer });
-    try {
-      window.AcademixNative[method](id);
-    } catch (error) {
-      pending.delete(id);
-      window.clearTimeout(timer);
-      reject(error);
-    }
-  });
+/** Listen for results coming back from the browser sign-in page. */
+export function onBrowserAuth(fn) {
+  listeners.add(fn);
+  if (queued) {
+    const payload = queued;
+    window.setTimeout(() => {
+      if (queued === payload) queued = null;
+    }, 3000);
+    window.setTimeout(() => fn(payload), 0);
+  }
+  return () => listeners.delete(fn);
 }
 
-/** Google ID token from the phone's own accounts (for Firebase sign-in). */
-export const nativeGoogleIdToken = () => call("requestGoogleIdToken");
-
-/** Google Drive (drive.file) access token from the phone's own accounts. */
-export const nativeDriveToken = () => call("requestDriveToken");
+/** mode: "login" (Firebase sign-in) or "drive" (Drive upload permission). */
+export function openBrowserLogin(mode) {
+  window.AcademixNative.openBrowserLogin(mode);
+}

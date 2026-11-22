@@ -23,16 +23,13 @@ import {
 import { db } from "./firebase.js";
 import { escapeAttr, escapeHtml, friendlyAuthError, openSheet, setButtonLoading, toast } from "./ui.js";
 import { clearUserState, state } from "./state.js";
-import { openLegalSheet } from "./legal.js";
-import { isNativeApp, nativeGoogleIdToken } from "./native.js";
+import { isNativeApp, onBrowserAuth, openBrowserLogin } from "./native.js";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const GOOGLE_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3Z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1a5.9 5.9 0 0 1-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9l3.3-2.5Z"/><path fill="#EA4335" d="M12 6.1c1.5 0 2.8.5 3.9 1.5l2.9-2.9A9.8 9.8 0 0 0 12 2a10 10 0 0 0-8.9 5.5l3.3 2.6A5.9 5.9 0 0 1 12 6.1Z"/></svg>`;
 
 function userRef(uid) {
-  const targetUid = uid || auth.currentUser?.uid || state.profile?.uid;
-  if (!targetUid) throw new Error("User identifier is required.");
-  return doc(db, "users", targetUid);
+  return doc(db, "users", uid);
 }
 
 function isEmailPasswordUser(user) {
@@ -79,14 +76,12 @@ export async function ensureUserDocument(user) {
       bookmarks: [],
       recentlyViewed: [],
       completedModules: {},
-      termsAccepted: Boolean(user?.termsAccepted),
-      termsAcceptedAt: user?.termsAccepted ? new Date().toISOString() : null,
       createdAt: serverTimestamp(),
       lastLogin: serverTimestamp(),
     };
     try {
       await setDoc(ref, payload);
-      return { uid: user.uid, ...payload, createdAt: new Date(), lastLogin: new Date() };
+      return { ...payload, createdAt: new Date(), lastLogin: new Date() };
     } catch (error) {
       if (error?.code === "already-exists") {
         const retry = await getDoc(ref);
@@ -115,27 +110,63 @@ export async function signOutUser() {
 }
 
 export async function updateOwnProfile(uid, patch) {
-  const targetUid = uid || auth.currentUser?.uid || state.profile?.uid;
-  if (!targetUid) throw new Error("No user ID available for profile update.");
   const allowed = {};
   if (typeof patch.name === "string") allowed.name = patch.name.trim().slice(0, 100);
   if (typeof patch.photoURL === "string") allowed.photoURL = patch.photoURL.trim().slice(0, 2048);
   if (typeof patch.branchId === "string") allowed.branchId = patch.branchId.slice(0, 100);
   if (typeof patch.yearId === "string") allowed.yearId = patch.yearId.slice(0, 100);
-  if (typeof patch.termsAccepted === "boolean") allowed.termsAccepted = patch.termsAccepted;
-  if (typeof patch.termsAcceptedAt === "string") allowed.termsAcceptedAt = patch.termsAcceptedAt;
   if (!Object.keys(allowed).length) return;
-  await updateDoc(userRef(targetUid), allowed);
+  await updateDoc(userRef(uid), allowed);
   if (auth.currentUser && allowed.name) {
-    updateProfile(auth.currentUser, { displayName: allowed.name }).catch(() => { });
+    updateProfile(auth.currentUser, { displayName: allowed.name }).catch(() => {});
   }
+}
+
+// Android app: the browser sign-in page hands back a Google token.
+if (isNativeApp()) {
+  onBrowserAuth(async (payload) => {
+    if (!payload || (!payload.idToken && !payload.error)) return;
+    if (payload.mode === "drive") return;
+    let detail = {};
+    if (payload.error) {
+      detail = { error: payload.error };
+    } else {
+      try {
+        await signInWithCredential(auth, GoogleAuthProvider.credential(payload.idToken, payload.accessToken || undefined));
+      } catch (error) {
+        detail = { error: friendlyAuthError(error) };
+      }
+    }
+    window.dispatchEvent(new CustomEvent("academix-native-signin", { detail }));
+  });
+}
+
+function nativeBrowserSignIn() {
+  return new Promise((resolve, reject) => {
+    const finish = (event) => {
+      window.clearTimeout(timer);
+      window.removeEventListener("academix-native-signin", finish);
+      if (event.detail?.error) reject(new Error(event.detail.error));
+      else resolve();
+    };
+    const timer = window.setTimeout(() => {
+      window.removeEventListener("academix-native-signin", finish);
+      reject(new Error("Google sign-in was not completed. Please try again."));
+    }, 5 * 60 * 1000);
+    window.addEventListener("academix-native-signin", finish);
+    try {
+      openBrowserLogin("login");
+    } catch (error) {
+      window.clearTimeout(timer);
+      window.removeEventListener("academix-native-signin", finish);
+      reject(error);
+    }
+  });
 }
 
 async function handleGoogleSignIn() {
   if (isNativeApp()) {
-    // Android app: use the Google accounts already on the phone.
-    const idToken = await nativeGoogleIdToken();
-    await signInWithCredential(auth, GoogleAuthProvider.credential(idToken));
+    await nativeBrowserSignIn();
     return;
   }
   const provider = new GoogleAuthProvider();
@@ -322,19 +353,13 @@ export function renderAuthScreen(root) {
             <div class="auth-meta-row">
               <button class="auth-link" type="button" id="forgot-password">Forgot password?</button>
             </div>
-            <div class="auth-terms" data-auth-signup-terms hidden>
-              <label class="checkbox" for="auth-terms-agree">
-                <input type="checkbox" id="auth-terms-agree" name="terms" />
-                <span>I agree to the <button type="button" class="btn-link" data-open-terms>Terms & Conditions</button> and <button type="button" class="btn-link" data-open-privacy>Privacy Policy</button>.</span>
-              </label>
-            </div>
             <button class="auth-submit" type="submit" id="auth-submit">
               <span>Log in</span>
               ${iconSafe("arrow-right")}
             </button>
           </form>
           <p class="auth-toggle" id="auth-toggle-copy">New to Academix? <button type="button" data-switch-auth="signup">Create an account</button></p>
-          <p class="auth-legal">By continuing you agree that notes are for personal study use only. Academix is a view-only library. Review our <button type="button" class="btn-link" data-open-terms>Terms</button> & <button type="button" class="btn-link" data-open-privacy>Privacy</button>.</p>
+          <p class="auth-legal">By continuing you agree that notes are for personal study use only. Academix is a view-only library.</p>
         </section>
       </div>
     </main>
@@ -348,8 +373,6 @@ export function renderAuthScreen(root) {
   const nameField = root.querySelector('[data-auth-field="name"]');
   const emailField = root.querySelector('[data-auth-field="email"]');
   const passwordField = root.querySelector('[data-auth-field="password"]');
-  const termsWrap = root.querySelector("[data-auth-signup-terms]");
-  const termsCheckbox = root.querySelector("#auth-terms-agree");
   const emailInput = root.querySelector("#auth-email");
   const passwordInput = root.querySelector("#auth-password");
   const nameInput = root.querySelector("#auth-name");
@@ -367,7 +390,6 @@ export function renderAuthScreen(root) {
       button.setAttribute("aria-selected", String(active));
     });
     nameField.hidden = !signup;
-    if (termsWrap) termsWrap.hidden = !signup;
     emailInput.autocomplete = signup ? "email" : "username";
     passwordInput.autocomplete = signup ? "new-password" : "current-password";
     title.innerHTML = signup
@@ -399,19 +421,6 @@ export function renderAuthScreen(root) {
   });
   root.querySelectorAll("[data-switch-auth]").forEach((button) => {
     button.addEventListener("click", () => setMode(button.dataset.switchAuth));
-  });
-
-  root.querySelectorAll("[data-open-terms]").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.preventDefault();
-      openLegalSheet("terms");
-    });
-  });
-  root.querySelectorAll("[data-open-privacy]").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.preventDefault();
-      openLegalSheet("privacy");
-    });
   });
 
   root.querySelector("#toggle-password")?.addEventListener("click", (event) => {
@@ -466,19 +475,14 @@ export function renderAuthScreen(root) {
       setFieldError("password", "");
     }
 
-    if (mode === "signup" && !termsCheckbox?.checked) {
-      showAuthError("Please agree to the Terms & Conditions and Privacy Policy to continue.");
-      valid = false;
-    }
-
     if (!valid) return;
 
     setButtonLoading(submit, true, mode === "signup" ? "Creating your account" : "Signing you in");
     try {
       if (mode === "signup") {
         const credential = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(credential.user, { displayName: name }).catch(() => { });
-        await ensureUserDocument({ ...credential.user, displayName: name, termsAccepted: true });
+        await updateProfile(credential.user, { displayName: name }).catch(() => {});
+        await ensureUserDocument({ ...credential.user, displayName: name });
         await sendEmailVerification(credential.user).catch(() => {
           toast("Account created. We couldn’t send the verification email yet.", { type: "info" });
         });

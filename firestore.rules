@@ -33,7 +33,7 @@ service cloud.firestore {
         && request.resource.data.blocked == false;
       allow update: if isAdmin()
         || (isOwner(userId)
-          && onlyChanged(['name', 'photoURL', 'yearId', 'branchId', 'bookmarks', 'recentlyViewed', 'completedModules', 'lastLogin', 'email'])
+          && onlyChanged(['name', 'photoURL', 'yearId', 'branchId', 'bookmarks', 'recentlyViewed', 'completedModules', 'lastLogin', 'email', 'termsAccepted', 'termsAcceptedAt'])
           && request.resource.data.role == resource.data.role
           && request.resource.data.blocked == resource.data.blocked);
       allow delete: if isAdmin();

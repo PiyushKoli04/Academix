@@ -1,6 +1,6 @@
 import { appConfig } from "../../firebase.config.js";
 import { fetchSettings, saveSettings } from "../db.js";
-import { isNativeApp, nativeDriveToken } from "../native.js";
+import { isNativeApp, onBrowserAuth, openBrowserLogin } from "../native.js";
 
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const DRIVE_API = "https://www.googleapis.com/drive/v3";
@@ -153,6 +153,19 @@ function loadGis() {
   return gisPromise;
 }
 
+if (isNativeApp()) {
+  onBrowserAuth((payload) => {
+    if (!payload || payload.mode !== "drive") return;
+    if (payload.error || !payload.driveToken) {
+      window.dispatchEvent(new CustomEvent("academix-native-drive", { detail: { error: payload.error || "Google did not return a Drive token." } }));
+      return;
+    }
+    accessToken = payload.driveToken;
+    tokenExpiresAt = Date.now() + (Number(payload.expiresIn) || 3300) * 1000;
+    window.dispatchEvent(new CustomEvent("academix-native-drive", { detail: { token: payload.driveToken } }));
+  });
+}
+
 function tokenIsFresh() {
   return Boolean(accessToken && Date.now() < tokenExpiresAt - TOKEN_EXPIRY_SKEW_MS);
 }
@@ -165,18 +178,30 @@ function requestNewToken({ interactive = false, forceAccount = false } = {}) {
   if (tokenRequest) return tokenRequest;
 
   if (isNativeApp()) {
-    // Android app: ask the phone's Google account for a Drive token.
-    tokenRequest = nativeDriveToken()
-      .then((token) => {
+    // Android app: the browser page gets the Drive token and sends it back.
+    tokenRequest = new Promise((resolve, reject) => {
+      const finish = (event) => {
+        window.clearTimeout(timer);
+        window.removeEventListener("academix-native-drive", finish);
         tokenRequest = null;
-        accessToken = token;
-        tokenExpiresAt = Date.now() + 55 * 60 * 1000;
-        return token;
-      })
-      .catch((error) => {
+        if (event.detail?.error) {
+          reject(new DriveAuthError(event.detail.error, { code: "native-drive" }));
+        } else {
+          resolve(event.detail.token);
+        }
+      };
+      const timer = window.setTimeout(() => {
+        window.removeEventListener("academix-native-drive", finish);
         tokenRequest = null;
-        throw new DriveAuthError(error?.message || "Google Drive access could not be completed.", { code: "native-drive" });
-      });
+        reject(new DriveAuthError("Google Drive access was not completed. Please try again.", { code: "native-drive" }));
+      }, 5 * 60 * 1000);
+      window.addEventListener("academix-native-drive", finish);
+      try {
+        openBrowserLogin("drive");
+      } catch (error) {
+        finish({ detail: { error: "Could not open the browser for Google Drive." } });
+      }
+    });
     return tokenRequest;
   }
 

@@ -1,12 +1,10 @@
 package in.co.syntaxsyndicate.academix;
 
 import android.app.Activity;
-import android.app.PendingIntent;
 import android.content.Intent;
-import android.content.IntentSender;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.CancellationSignal;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
@@ -17,40 +15,20 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 
-import androidx.credentials.Credential;
-import androidx.credentials.CredentialManager;
-import androidx.credentials.CredentialManagerCallback;
-import androidx.credentials.CustomCredential;
-import androidx.credentials.GetCredentialRequest;
-import androidx.credentials.GetCredentialResponse;
-import androidx.credentials.exceptions.GetCredentialCancellationException;
-import androidx.credentials.exceptions.GetCredentialException;
-import androidx.credentials.exceptions.NoCredentialException;
-
-import com.google.android.gms.auth.api.identity.AuthorizationRequest;
-import com.google.android.gms.auth.api.identity.AuthorizationResult;
-import com.google.android.gms.auth.api.identity.Identity;
-import com.google.android.gms.common.api.Scope;
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
-
 import org.json.JSONObject;
 
-import java.util.Collections;
+import java.security.SecureRandom;
 
 public class MainActivity extends Activity {
 
     private static final String HOST = "academix.syntaxsyndicate.co.in";
     private static final String START_URL = "https://" + HOST + "/";
-
-    // Web OAuth client ID (same one used by the site for Drive).
-    private static final String WEB_CLIENT_ID =
-            "271244422117-01p2bljhjee5fios9bghifslkkt4ls5g.apps.googleusercontent.com";
-    private static final String DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
-    private static final int REQ_DRIVE_AUTH = 4242;
+    private static final String PREFS = "academix_auth";
+    private static final String KEY_NONCE = "nonce";
 
     private WebView webView;
-    private String pendingDriveCallbackId;
+    private boolean pageReady = false;
+    private String queuedAuthJs = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -104,6 +82,16 @@ public class MainActivity extends Activity {
             }
 
             @Override
+            public void onPageFinished(WebView view, String url) {
+                pageReady = true;
+                if (queuedAuthJs != null) {
+                    String js = queuedAuthJs;
+                    queuedAuthJs = null;
+                    view.evaluateJavascript(js, null);
+                }
+            }
+
+            @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) {
                     view.loadData(
@@ -120,10 +108,19 @@ public class MainActivity extends Activity {
         } else {
             webView.loadUrl(START_URL);
         }
+
+        handleAuthReturn(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleAuthReturn(intent);
     }
 
     // ---------------------------------------------------------------------
-    // Bridge: the website calls these to use the phone's own Google accounts
+    // Sign-in: open the real browser, then receive academix://auth?... back
     // ---------------------------------------------------------------------
     private class NativeBridge {
         @JavascriptInterface
@@ -132,24 +129,22 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
-        public void requestGoogleIdToken(final String callbackId) {
+        public void openBrowserLogin(final String mode) {
             runOnUiThread(() -> {
-                if (!fromOwnSite()) {
-                    deliver(callbackId, "", "Blocked: not the Academix site.");
-                    return;
-                }
-                startGoogleIdToken(callbackId);
-            });
-        }
-
-        @JavascriptInterface
-        public void requestDriveToken(final String callbackId) {
-            runOnUiThread(() -> {
-                if (!fromOwnSite()) {
-                    deliver(callbackId, "", "Blocked: not the Academix site.");
-                    return;
-                }
-                startDriveAuthorization(callbackId);
+                if (!fromOwnSite()) return;
+                String safeMode = "drive".equals(mode) ? "drive" : "login";
+                byte[] bytes = new byte[16];
+                new SecureRandom().nextBytes(bytes);
+                StringBuilder nonce = new StringBuilder();
+                for (byte b : bytes) nonce.append(String.format("%02x", b));
+                getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                        .putString(KEY_NONCE, nonce.toString()).apply();
+                Uri url = Uri.parse("https://" + HOST + "/app-login.html")
+                        .buildUpon()
+                        .appendQueryParameter("mode", safeMode)
+                        .appendQueryParameter("nonce", nonce.toString())
+                        .build();
+                openExternal(url);
             });
         }
     }
@@ -165,125 +160,35 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void startGoogleIdToken(final String callbackId) {
+    private void handleAuthReturn(Intent intent) {
+        if (intent == null || intent.getData() == null) return;
+        Uri uri = intent.getData();
+        if (!"academix".equals(uri.getScheme()) || !"auth".equals(uri.getHost())) return;
+        // consume so a rotation or relaunch does not replay it
+        intent.setData(null);
+
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        String expected = prefs.getString(KEY_NONCE, null);
+        String got = uri.getQueryParameter("nonce");
+        if (expected == null || got == null || !expected.equals(got)) return;
+        prefs.edit().remove(KEY_NONCE).apply();
+
         try {
-            GetGoogleIdOption option = new GetGoogleIdOption.Builder()
-                    .setFilterByAuthorizedAccounts(false)
-                    .setServerClientId(WEB_CLIENT_ID)
-                    .build();
-            GetCredentialRequest request = new GetCredentialRequest.Builder()
-                    .addCredentialOption(option)
-                    .build();
-            CredentialManager manager = CredentialManager.create(this);
-            manager.getCredentialAsync(
-                    this,
-                    request,
-                    new CancellationSignal(),
-                    command -> runOnUiThread(command),
-                    new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
-                        @Override
-                        public void onResult(GetCredentialResponse result) {
-                            Credential credential = result.getCredential();
-                            if (credential instanceof CustomCredential
-                                    && GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-                                        .equals(credential.getType())) {
-                                GoogleIdTokenCredential google = GoogleIdTokenCredential
-                                        .createFrom(((CustomCredential) credential).getData());
-                                deliver(callbackId, google.getIdToken(), "");
-                            } else {
-                                deliver(callbackId, "", "Unexpected sign-in response.");
-                            }
-                        }
-
-                        @Override
-                        public void onError(GetCredentialException e) {
-                            String message;
-                            if (e instanceof GetCredentialCancellationException) {
-                                message = "Google sign-in was cancelled.";
-                            } else if (e instanceof NoCredentialException) {
-                                message = "No Google account found on this phone. Add one in Settings > Accounts, then try again.";
-                            } else {
-                                message = "Google sign-in failed: " + e.getType()
-                                        + (e.getMessage() != null ? " (" + e.getMessage() + ")" : "");
-                            }
-                            deliver(callbackId, "", message);
-                        }
-                    });
-        } catch (Exception e) {
-            deliver(callbackId, "", "Google sign-in could not start: " + e.getMessage());
+            JSONObject payload = new JSONObject();
+            for (String key : new String[]{"mode", "idToken", "accessToken", "driveToken", "expiresIn", "error"}) {
+                String value = uri.getQueryParameter(key);
+                if (value != null) payload.put(key, value);
+            }
+            String json = payload.toString();
+            String js = "(function(p){ if (window.__academixBrowserAuth) { window.__academixBrowserAuth(p); }"
+                    + " else { window.__academixPendingAuth = p; } })(" + json + ");";
+            if (pageReady) {
+                webView.evaluateJavascript(js, null);
+            } else {
+                queuedAuthJs = js;
+            }
+        } catch (Exception ignored) {
         }
-    }
-
-    private void startDriveAuthorization(final String callbackId) {
-        try {
-            AuthorizationRequest request = AuthorizationRequest.builder()
-                    .setRequestedScopes(Collections.singletonList(new Scope(DRIVE_SCOPE)))
-                    .build();
-            Identity.getAuthorizationClient(this)
-                    .authorize(request)
-                    .addOnSuccessListener(result -> {
-                        if (result.hasResolution()) {
-                            PendingIntent pending = result.getPendingIntent();
-                            if (pending == null) {
-                                deliver(callbackId, "", "Drive permission screen unavailable.");
-                                return;
-                            }
-                            try {
-                                pendingDriveCallbackId = callbackId;
-                                startIntentSenderForResult(
-                                        pending.getIntentSender(), REQ_DRIVE_AUTH, null, 0, 0, 0);
-                            } catch (IntentSender.SendIntentException e) {
-                                pendingDriveCallbackId = null;
-                                deliver(callbackId, "", "Could not open the Drive permission screen.");
-                            }
-                        } else {
-                            deliverDriveResult(callbackId, result);
-                        }
-                    })
-                    .addOnFailureListener(e ->
-                            deliver(callbackId, "", "Drive access failed: " + e.getMessage()));
-        } catch (Exception e) {
-            deliver(callbackId, "", "Drive access could not start: " + e.getMessage());
-        }
-    }
-
-    private void deliverDriveResult(String callbackId, AuthorizationResult result) {
-        String token = result.getAccessToken();
-        if (token == null || token.isEmpty()) {
-            deliver(callbackId, "", "Google did not return a Drive token.");
-        } else {
-            deliver(callbackId, token, "");
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode != REQ_DRIVE_AUTH) return;
-        String callbackId = pendingDriveCallbackId;
-        pendingDriveCallbackId = null;
-        if (callbackId == null) return;
-        if (resultCode != RESULT_OK || data == null) {
-            deliver(callbackId, "", "Drive access was not granted.");
-            return;
-        }
-        try {
-            AuthorizationResult result = Identity.getAuthorizationClient(this)
-                    .getAuthorizationResultFromIntent(data);
-            deliverDriveResult(callbackId, result);
-        } catch (Exception e) {
-            deliver(callbackId, "", "Drive access failed: " + e.getMessage());
-        }
-    }
-
-    /** Sends the result back to the page: window.__academixNativeResult(id, value, error). */
-    private void deliver(String callbackId, String value, String error) {
-        final String js = "window.__academixNativeResult && window.__academixNativeResult("
-                + JSONObject.quote(callbackId) + "," + JSONObject.quote(value) + ","
-                + JSONObject.quote(error) + ");";
-        runOnUiThread(() -> {
-            if (webView != null) webView.evaluateJavascript(js, null);
-        });
     }
 
     private void openExternal(Uri uri) {

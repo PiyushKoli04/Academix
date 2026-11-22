@@ -480,7 +480,16 @@ function renderNotFound(main) {
 function maybeShowOnboarding() {
   const profile = state.profile;
   if (!profile || onboardingShown) return;
-  if (profile.branchId && profile.yearId && profile.termsAccepted) return;
+
+  const uid = profile.uid || state.user?.uid;
+  let termsAccepted = Boolean(profile.termsAccepted);
+  if (!termsAccepted && uid) {
+    try {
+      if (localStorage.getItem(`academix_terms_${uid}`) === "true") termsAccepted = true;
+    } catch { }
+  }
+
+  if (profile.branchId && profile.yearId && termsAccepted) return;
   if (!state.years.length || !state.branches.length) return;
   if (location.hash.startsWith("#/viewer/")) return;
 
@@ -488,7 +497,7 @@ function maybeShowOnboarding() {
   const firstYear = state.years.find((year) => year.id === (profile.yearId || state.selection.yearId)) || state.years[0];
   let selectedYear = profile.yearId || firstYear?.id || "";
   let selectedBranch = profile.branchId || state.branches.find((branch) => branch.id === (profile.branchId || state.selection.branchId))?.id || "";
-  let acceptedTerms = Boolean(profile.termsAccepted);
+  let acceptedTerms = termsAccepted;
 
   const sheet = openSheet({
     title: "Make Academix yours",
@@ -565,6 +574,9 @@ function maybeShowOnboarding() {
         try {
           const uid = state.profile?.uid || state.user?.uid;
           const now = new Date().toISOString();
+          try {
+            if (uid) localStorage.setItem(`academix_terms_${uid}`, "true");
+          } catch { }
           await updateOwnProfile(uid, {
             yearId: selectedYear,
             branchId: selectedBranch,
@@ -582,6 +594,7 @@ function maybeShowOnboarding() {
             termsAccepted: true,
             termsAcceptedAt: now,
           };
+          onboardingShown = true;
           close();
           toast("Your study setup is ready. Welcome to Academix!", { type: "success" });
           renderRoute();
