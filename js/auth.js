@@ -6,6 +6,7 @@ import {
   onAuthStateChanged,
   sendEmailVerification,
   sendPasswordResetEmail,
+  signInWithCredential,
   signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
@@ -22,6 +23,7 @@ import {
 import { db } from "./firebase.js";
 import { escapeAttr, escapeHtml, friendlyAuthError, openSheet, setButtonLoading, toast } from "./ui.js";
 import { clearUserState, state } from "./state.js";
+import { isNativeApp, nativeGoogleIdToken } from "./native.js";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const GOOGLE_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3Z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1a5.9 5.9 0 0 1-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9l3.3-2.5Z"/><path fill="#EA4335" d="M12 6.1c1.5 0 2.8.5 3.9 1.5l2.9-2.9A9.8 9.8 0 0 0 12 2a10 10 0 0 0-8.9 5.5l3.3 2.6A5.9 5.9 0 0 1 12 6.1Z"/></svg>`;
@@ -121,6 +123,12 @@ export async function updateOwnProfile(uid, patch) {
 }
 
 async function handleGoogleSignIn() {
+  if (isNativeApp()) {
+    // Android app: use the Google accounts already on the phone.
+    const idToken = await nativeGoogleIdToken();
+    await signInWithCredential(auth, GoogleAuthProvider.credential(idToken));
+    return;
+  }
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
   try {

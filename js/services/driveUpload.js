@@ -1,5 +1,6 @@
 import { appConfig } from "../../firebase.config.js";
 import { fetchSettings, saveSettings } from "../db.js";
+import { isNativeApp, nativeDriveToken } from "../native.js";
 
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const DRIVE_API = "https://www.googleapis.com/drive/v3";
@@ -162,6 +163,22 @@ function requestNewToken({ interactive = false, forceAccount = false } = {}) {
   }
   if (tokenIsFresh()) return Promise.resolve(accessToken);
   if (tokenRequest) return tokenRequest;
+
+  if (isNativeApp()) {
+    // Android app: ask the phone's Google account for a Drive token.
+    tokenRequest = nativeDriveToken()
+      .then((token) => {
+        tokenRequest = null;
+        accessToken = token;
+        tokenExpiresAt = Date.now() + 55 * 60 * 1000;
+        return token;
+      })
+      .catch((error) => {
+        tokenRequest = null;
+        throw new DriveAuthError(error?.message || "Google Drive access could not be completed.", { code: "native-drive" });
+      });
+    return tokenRequest;
+  }
 
   tokenRequest = loadGis()
     .then(() => new Promise((resolve, reject) => {

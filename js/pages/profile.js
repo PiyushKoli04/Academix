@@ -1,4 +1,5 @@
 import { signOutUser, updateOwnProfile } from "../auth.js";
+import { openLegalSheet } from "../legal.js";
 import {
   branchName,
   getEffectiveSelection,
@@ -243,6 +244,22 @@ export function renderProfile(root, context = {}) {
               </div>
               <span class="profile-menu__chevron">${icon("chevron-right")}</span>
             </a>
+            <button class="profile-menu__item" type="button" id="profile-terms">
+              <span class="profile-menu__icon">${icon("shield-check")}</span>
+              <div class="profile-menu__copy">
+                <span class="profile-menu__label">Terms & Conditions</span>
+                <span class="profile-menu__value">${profile.termsAccepted ? "Accepted · Personal study license" : "Review & accept rules"}</span>
+              </div>
+              <span class="profile-menu__chevron">${icon("chevron-right")}</span>
+            </button>
+            <button class="profile-menu__item" type="button" id="profile-privacy">
+              <span class="profile-menu__icon">${icon("lock")}</span>
+              <div class="profile-menu__copy">
+                <span class="profile-menu__label">Privacy Policy</span>
+                <span class="profile-menu__value">How your data is protected</span>
+              </div>
+              <span class="profile-menu__chevron">${icon("chevron-right")}</span>
+            </button>
             ${admin ? `<a class="profile-menu__item" href="#/admin">
               <span class="profile-menu__icon">${icon("shield")}</span>
               <div class="profile-menu__copy">
@@ -299,6 +316,8 @@ export function renderProfile(root, context = {}) {
   root.querySelector("#edit-profile-top")?.addEventListener("click", openEditor);
   root.querySelector("#edit-avatar")?.addEventListener("click", openEditor);
   root.querySelector("#profile-setup")?.addEventListener("click", () => openSetupSheet(root, context));
+  root.querySelector("#profile-terms")?.addEventListener("click", () => openLegalSheet("terms"));
+  root.querySelector("#profile-privacy")?.addEventListener("click", () => openLegalSheet("privacy"));
 
   root.querySelector("#profile-signout")?.addEventListener("click", async () => {
     const confirmed = await confirmDialog({

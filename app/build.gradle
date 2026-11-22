@@ -14,9 +14,22 @@ android {
         versionName "1.0.0"
     }
 
+    signingConfigs {
+        academix {
+            storeFile file('academix.keystore')
+            storePassword 'academix-keystore'
+            keyAlias 'academix'
+            keyPassword 'academix-keystore'
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig signingConfigs.academix
+        }
         release {
             minifyEnabled false
+            signingConfig signingConfigs.academix
         }
     }
 
@@ -24,4 +37,13 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+}
+
+dependencies {
+    // Native "Sign in with Google" using the accounts already on the phone
+    implementation 'androidx.credentials:credentials:1.3.0'
+    implementation 'androidx.credentials:credentials-play-services-auth:1.3.0'
+    implementation 'com.google.android.libraries.identity.googleid:googleid:1.1.1'
+    // Google Drive access token (drive.file) for uploads
+    implementation 'com.google.android.gms:play-services-auth:21.2.0'
 }

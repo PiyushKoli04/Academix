@@ -1,4 +1,5 @@
 import { state } from "../state.js";
+import { openLegalSheet } from "../legal.js";
 import {
   avatarHTML,
   emptyStateHTML,
@@ -74,6 +75,15 @@ export function renderAbout(root) {
           <p class="about-card__text">PDFs stay in the contributor’s Google Drive. Academix stores only the details needed to show them here: subject, type, and a view-only preview link. Your bookmarks and progress are saved privately to your account.</p>
         </section>
 
+        <section class="about-card about-card--tint">
+          <h2 class="about-card__title"><span class="about-card__title-icon">${icon("shield-check")}</span> Legal & Policies</h2>
+          <p class="about-card__text">Learn about your rights, privacy protections, and personal study terms governing Academix.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+            <button class="btn btn--white btn--sm" type="button" data-about-terms>${icon("file-text", "icon--xs")} Terms & Conditions</button>
+            <button class="btn btn--white btn--sm" type="button" data-about-privacy>${icon("lock", "icon--xs")} Privacy Policy</button>
+          </div>
+        </section>
+
         <section class="about-card">
           <h2 class="about-card__title"><span class="about-card__title-icon">${icon("message-circle")}</span> Need help?</h2>
           <p class="about-card__text">A document not opening, or a subject missing a PDF? Tell your Academix admin and they can fix it from the dashboard.</p>
@@ -108,6 +118,9 @@ export function renderAbout(root) {
       <p class="about-disclaimer" style="margin-top:22px;text-align:center">Academix is built for personal study. Please respect your college’s academic policies and the contributors who shared their notes.</p>
     </div>
   </div>`;
+
+  root.querySelector("[data-about-terms]")?.addEventListener("click", () => openLegalSheet("terms"));
+  root.querySelector("[data-about-privacy]")?.addEventListener("click", () => openLegalSheet("privacy"));
 
   return () => {};
 }

@@ -18,17 +18,8 @@ import {
   recordAdImpression,
   subscribeSettings,
 } from "./db.js";
-import {
-  avatarHTML,
-  closeAllOverlays,
-  escapeAttr,
-  escapeHtml,
-  icon,
-  openSheet,
-  setButtonLoading,
-  skeletonPageHTML,
-  toast,
-} from "./ui.js";
+import { avatarHTML, closeAllOverlays, escapeAttr, escapeHtml, icon, openSheet, setButtonLoading, skeletonPageHTML, toast } from "./ui.js";
+import { openLegalSheet, renderPrivacy, renderTerms } from "./legal.js";
 import {
   clearUserState,
   dismissInstallPrompt,
@@ -201,6 +192,8 @@ function pageForRoute(path) {
   if (path === "/bookmarks") return renderBookmarks;
   if (path === "/profile") return renderProfile;
   if (path === "/about") return renderAbout;
+  if (path === "/terms") return renderTerms;
+  if (path === "/privacy") return renderPrivacy;
   return null;
 }
 
@@ -486,18 +479,19 @@ function renderNotFound(main) {
 function maybeShowOnboarding() {
   const profile = state.profile;
   if (!profile || onboardingShown) return;
-  if (profile.branchId && profile.yearId) return;
+  if (profile.branchId && profile.yearId && profile.termsAccepted) return;
   if (!state.years.length || !state.branches.length) return;
   if (location.hash.startsWith("#/viewer/")) return;
 
   onboardingShown = true;
   const firstYear = state.years.find((year) => year.id === (profile.yearId || state.selection.yearId)) || state.years[0];
-  let selectedYear = firstYear?.id || "";
-  let selectedBranch = state.branches.find((branch) => branch.id === (profile.branchId || state.selection.branchId))?.id || "";
+  let selectedYear = profile.yearId || firstYear?.id || "";
+  let selectedBranch = profile.branchId || state.branches.find((branch) => branch.id === (profile.branchId || state.selection.branchId))?.id || "";
+  let acceptedTerms = Boolean(profile.termsAccepted);
 
   const sheet = openSheet({
     title: "Make Academix yours",
-    subtitle: "Two quick picks so your semester is ready every time.",
+    subtitle: "Confirm your study setup and accept the terms to get started.",
     closeOnBackdrop: false,
     content: `<div class="onboarding-intro">
         <h3 class="onboarding-intro__title"><span class="fw-light">Welcome to</span> <strong>Academix.</strong></h3>
@@ -520,13 +514,36 @@ function maybeShowOnboarding() {
             <span class="onboarding-option__meta">${escapeHtml(branch.name)}</span>
           </button>`).join("")}
         </div>
+      </div>
+      <div class="onboarding-legal">
+        <label class="checkbox" for="onboard-terms-agree">
+          <input type="checkbox" id="onboard-terms-agree" data-onboard-terms ${acceptedTerms ? "checked" : ""} />
+          <span>I have read and agree to the <button type="button" class="btn-link" data-open-terms>Terms & Conditions</button> and <button type="button" class="btn-link" data-open-privacy>Privacy Policy</button>.</span>
+        </label>
       </div>`,
-    footer: `<button class="btn btn--primary" type="button" data-onboard-save ${!selectedYear || !selectedBranch ? "disabled" : ""}>Start studying</button>`,
+    footer: `<button class="btn btn--primary" type="button" data-onboard-save ${!selectedYear || !selectedBranch || !acceptedTerms ? "disabled" : ""}>Start studying</button>`,
     onMount(sheetElement, close) {
       const saveButton = sheetElement.querySelector("[data-onboard-save]");
+      const termsCheckbox = sheetElement.querySelector("[data-onboard-terms]");
       const sync = () => {
-        if (saveButton) saveButton.disabled = !selectedYear || !selectedBranch;
+        acceptedTerms = Boolean(termsCheckbox?.checked);
+        if (saveButton) saveButton.disabled = !selectedYear || !selectedBranch || !acceptedTerms;
       };
+      termsCheckbox?.addEventListener("change", sync);
+
+      sheetElement.querySelectorAll("[data-open-terms]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          openLegalSheet("terms");
+        });
+      });
+      sheetElement.querySelectorAll("[data-open-privacy]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          openLegalSheet("privacy");
+        });
+      });
+
       sheetElement.querySelectorAll("[data-onboard-year]").forEach((button) => {
         button.addEventListener("click", () => {
           selectedYear = button.dataset.onboardYear;
@@ -542,16 +559,28 @@ function maybeShowOnboarding() {
         });
       });
       saveButton?.addEventListener("click", async () => {
-        if (!selectedYear || !selectedBranch) return;
-        setButtonLoading(saveButton, true, "Saving your picks");
+        if (!selectedYear || !selectedBranch || !termsCheckbox?.checked) return;
+        setButtonLoading(saveButton, true, "Saving your setup");
         try {
-          await updateOwnProfile(state.profile.uid, { yearId: selectedYear, branchId: selectedBranch });
+          const now = new Date().toISOString();
+          await updateOwnProfile(state.profile.uid, {
+            yearId: selectedYear,
+            branchId: selectedBranch,
+            termsAccepted: true,
+            termsAcceptedAt: now,
+          });
           const year = state.years.find((item) => item.id === selectedYear);
           const semester = Array.isArray(year?.semesters) && year.semesters.length ? Math.min(...year.semesters) : 1;
           setSelection({ yearId: selectedYear, semester, branchId: selectedBranch });
-          state.profile = { ...state.profile, yearId: selectedYear, branchId: selectedBranch };
+          state.profile = {
+            ...state.profile,
+            yearId: selectedYear,
+            branchId: selectedBranch,
+            termsAccepted: true,
+            termsAcceptedAt: now,
+          };
           close();
-          toast("Your semester is set up.", { type: "success" });
+          toast("Your study setup is ready. Welcome to Academix!", { type: "success" });
           renderRoute();
         } catch (error) {
           setButtonLoading(saveButton, false);
