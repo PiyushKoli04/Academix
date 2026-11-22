@@ -1,4 +1,4 @@
-const CACHE_VERSION = "academix-v5";
+const CACHE_VERSION = "academix-v8";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const FONT_CACHE = `${CACHE_VERSION}-fonts`;
 
@@ -15,8 +15,8 @@ const APP_SHELL = [
   "./js/firebase.js",
   "./firebase.config.js",
   "./js/auth.js",
+  "./js/legal.js",
   "./js/state.js",
-  "./js/native.js",
   "./js/ui.js",
   "./js/drive.js",
   "./js/db.js",

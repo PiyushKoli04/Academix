@@ -108,6 +108,7 @@ async function handleAuthState(user) {
     const profile = await ensureUserDocument(user);
     if (sequence !== authSequence.value) return;
     if (!profile) throw new Error("Your Academix profile could not be loaded.");
+    if (!profile.uid) profile.uid = user.uid;
     if (profile.blocked) {
       renderAccountUnavailable("This account has been blocked by an administrator.");
       return;
@@ -559,11 +560,12 @@ function maybeShowOnboarding() {
         });
       });
       saveButton?.addEventListener("click", async () => {
-        if (!selectedYear || !selectedBranch || !termsCheckbox?.checked) return;
+        if (!selectedYear || !selectedBranch || (termsCheckbox && !termsCheckbox.checked)) return;
         setButtonLoading(saveButton, true, "Saving your setup");
         try {
+          const uid = state.profile?.uid || state.user?.uid;
           const now = new Date().toISOString();
-          await updateOwnProfile(state.profile.uid, {
+          await updateOwnProfile(uid, {
             yearId: selectedYear,
             branchId: selectedBranch,
             termsAccepted: true,
@@ -574,6 +576,7 @@ function maybeShowOnboarding() {
           setSelection({ yearId: selectedYear, semester, branchId: selectedBranch });
           state.profile = {
             ...state.profile,
+            uid: uid || state.profile?.uid,
             yearId: selectedYear,
             branchId: selectedBranch,
             termsAccepted: true,
