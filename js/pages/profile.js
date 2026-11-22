@@ -182,17 +182,17 @@ export function renderProfile(root, context = {}) {
               ${avatarHTML(profile, { size: "xl" })}
               <button class="profile-hero__edit-avatar" type="button" id="edit-avatar" aria-label="Edit profile photo">${icon("camera")}</button>
             </div>
-            <div>
+            <div class="profile-hero__info">
               <h1 class="profile-hero__name">${escapeHtml(profile.name || "Student")}</h1>
-              <p class="profile-hero__email">${escapeHtml(profile.email || "")}</p>
-              <div class="profile-hero__chips">
-                <span class="profile-hero__chip">${icon("graduation-cap")} ${escapeHtml(yearLabel(state.years.find((year) => year.id === profile.yearId)))}</span>
-                <span class="profile-hero__chip">${icon("layers")} ${escapeHtml(branchName(profile.branchId || selection.branchId))}</span>
-                <span class="profile-hero__chip">${icon(admin ? "shield" : "user-check")} ${admin ? "Administrator" : "Student"}</span>
-              </div>
+              <p class="profile-hero__email" title="${escapeAttr(profile.email || "")}">${escapeHtml(profile.email || "")}</p>
             </div>
           </div>
-          <button class="icon-btn icon-btn--ghost" type="button" id="edit-profile-top" aria-label="Edit profile" style="color:#fff">${icon("edit")}</button>
+          <button class="profile-hero__edit-btn" type="button" id="edit-profile-top" aria-label="Edit profile">${icon("edit")}</button>
+        </div>
+        <div class="profile-hero__chips">
+          <span class="profile-hero__chip">${icon("graduation-cap")} ${escapeHtml(yearLabel(state.years.find((year) => year.id === profile.yearId)))}</span>
+          <span class="profile-hero__chip">${icon("layers")} ${escapeHtml(branchName(profile.branchId || selection.branchId))}</span>
+          <span class="profile-hero__chip">${icon(admin ? "shield" : "user-check")} ${admin ? "Administrator" : "Student"}</span>
         </div>
         <div class="profile-hero__stats">
           <div class="profile-stat"><p class="profile-stat__value">${bookmarks.length}</p><p class="profile-stat__label">Bookmarks</p></div>

@@ -2163,80 +2163,124 @@
   position: relative;
   z-index: 1;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px;
 }
 
 .profile-hero__identity {
   display: flex;
   align-items: center;
   gap: 14px;
+  min-width: 0;
+  flex: 1;
 }
 
 .profile-hero__avatar {
   position: relative;
+  flex-shrink: 0;
 }
 
 .profile-hero__avatar .avatar {
-  --avatar-size: 74px;
-  border-color: rgba(255, 255, 255, 0.2);
+  --avatar-size: 64px;
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
 
 .profile-hero__edit-avatar {
   position: absolute;
   right: -2px;
   bottom: -2px;
-  width: 25px;
-  height: 25px;
+  width: 24px;
+  height: 24px;
   display: grid;
   place-items: center;
   border-radius: 50%;
   color: var(--ink-soft);
   background: var(--lime);
-  border: 2px solid var(--ink-soft);
+  border: 2px solid #1c1a24;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 .profile-hero__edit-avatar .icon {
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
+}
+
+.profile-hero__info {
+  min-width: 0;
+  flex: 1;
 }
 
 .profile-hero__name {
-  font-size: 24px;
-  font-weight: 600;
-  letter-spacing: -0.05em;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
 }
 
 .profile-hero__email {
-  margin-top: 2px;
-  color: rgba(255, 255, 255, 0.48);
-  font-size: 10px;
-  overflow-wrap: anywhere;
+  margin-top: 3px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.profile-hero__edit-btn {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition: background var(--speed-fast) ease;
+}
+
+.profile-hero__edit-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.profile-hero__edit-btn .icon {
+  width: 15px;
+  height: 15px;
 }
 
 .profile-hero__chips {
-  margin-top: 9px;
+  position: relative;
+  z-index: 1;
+  margin-top: 14px;
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 6px;
+  width: 100%;
 }
 
 .profile-hero__chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
+  gap: 5px;
+  padding: 5px 10px;
   border-radius: var(--radius-pill);
-  color: rgba(255, 255, 255, 0.68);
+  color: rgba(255, 255, 255, 0.78);
   background: rgba(255, 255, 255, 0.08);
-  font-size: 8.5px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 10px;
   font-weight: 500;
+  line-height: 1.2;
 }
 
 .profile-hero__chip .icon {
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
+  color: var(--lime);
 }
 
 .profile-hero__stats {
@@ -2245,18 +2289,32 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1px;
-  margin-top: 22px;
-  padding-top: 18px;
+  margin-top: 18px;
+  padding-top: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.09);
+  text-align: center;
 }
 
 .profile-stat {
-  padding: 0 12px;
+  padding: 0 8px;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.profile-stat:first-child {
-  padding-left: 0;
+.profile-stat:last-child {
+  border-right: 0;
+}
+
+.profile-stat__value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.profile-stat__label {
+  margin-top: 2px;
+  font-size: 9.5px;
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .profile-stat:last-child {

@@ -1,4 +1,4 @@
-import { deleteAd, fetchAllAds, saveAd, setAdActive } from "../../db.js";
+import { deleteAd, fetchAllAds, saveAd, saveSettings, setAdActive } from "../../db.js";
 import {
   AD_PLACEMENTS,
   confirmDialog,
@@ -22,16 +22,28 @@ export async function renderAds(main, context) {
   if (!location.hash.startsWith("#/admin/ads")) return;
 
   const activeCount = ads.filter((ad) => ad.active).length;
+  const masterAdsEnabled = Boolean(context.state.settings?.adsEnabled);
 
   main.innerHTML = `${adminPageOpen("ads")}
     ${adminHeaderHTML({
       title: '<span class="fw-light">Sponsors,</span> <strong>not clutter.</strong>',
-      subtitle: "Create small, dismissible placements. The master switch on the dashboard hides every ad instantly.",
+      subtitle: "Create small, dismissible placements. The master switch on the dashboard controls global ad visibility.",
       actions: `<button class="btn btn--primary btn--sm" type="button" data-add-ad>${icon("plus")} New ad</button>`,
     })}
+    ${!masterAdsEnabled ? `<div class="ad-master-alert" style="margin-bottom:16px;padding:14px 16px;border-radius:18px;background:rgba(255,149,0,0.12);border:1px solid rgba(255,149,0,0.3);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="color:var(--orange)">${icon("alert-circle")}</span>
+        <div>
+          <p style="font-size:12.5px;font-weight:600;margin:0">Ads master switch is currently OFF</p>
+          <p style="font-size:10.5px;color:var(--text-secondary);margin:2px 0 0">Ads are hidden across student pages. Click to enable visibility.</p>
+        </div>
+      </div>
+      <button class="btn btn--primary btn--sm" type="button" data-enable-master-ads>${icon("eye")} Turn on ads</button>
+    </div>` : ""}
     <div class="admin-toolbar">
       <span class="status-chip status-chip--success">${icon("eye", "icon--xs")} ${activeCount} active</span>
       <span class="status-chip">${ads.length} total</span>
+      <span class="status-chip ${masterAdsEnabled ? "status-chip--success" : "status-chip--warning"}">${masterAdsEnabled ? "Master switch: ON" : "Master switch: OFF"}</span>
       <span class="admin-card__sub" style="margin-left:auto">Images are optional and shown at a small size.</span>
     </div>
     ${ads.length ? `<div class="admin-list-grid">
@@ -43,6 +55,20 @@ export async function renderAds(main, context) {
       actions: `<button class="btn btn--primary btn--sm" type="button" data-add-ad>${icon("plus")} Create the first ad</button>`,
     })}
   ${adminPageClose()}`;
+
+  main.querySelector("[data-enable-master-ads]")?.addEventListener("click", async (event) => {
+    const btn = event.currentTarget;
+    setButtonLoading(btn, true);
+    try {
+      await saveSettings({ adsEnabled: true });
+      context.state.settings = { ...(context.state.settings || {}), adsEnabled: true };
+      toast("Master switch turned on. Ads are now visible to students.", { type: "success" });
+      await renderAds(main, context);
+    } catch (error) {
+      setButtonLoading(btn, false);
+      toast(error?.message || "Could not turn on master switch.", { type: "error" });
+    }
+  });
 
   main.querySelectorAll("[data-add-ad]").forEach((button) => {
     button.addEventListener("click", () => openAdSheet(main, context, null));
@@ -60,6 +86,10 @@ export async function renderAds(main, context) {
       input.disabled = true;
       try {
         await setAdActive(ad.id, input.checked);
+        if (input.checked && !context.state.settings?.adsEnabled) {
+          await saveSettings({ adsEnabled: true });
+          context.state.settings = { ...(context.state.settings || {}), adsEnabled: true };
+        }
         toast(input.checked ? "Ad is now live." : "Ad paused.", { type: "success" });
         await renderAds(main, context);
       } catch (error) {
@@ -169,7 +199,7 @@ function openAdSheet(main, context, ad) {
           <label class="field">
             <span class="field__label">Status</span>
             <span class="switch" style="min-height:46px">
-              <input type="checkbox" name="active" ${ad?.active ? "checked" : ""} />
+              <input type="checkbox" name="active" ${ad ? (ad.active ? "checked" : "") : "checked"} />
               <span class="switch__track"></span>
               <span class="switch__label">Live</span>
             </span>
@@ -214,6 +244,7 @@ function openAdSheet(main, context, ad) {
         }
         setButtonLoading(saveButton, true, "Saving");
         try {
+          const makeActive = data.get("active") === "on";
           await saveAd(ad?.id || null, {
             title,
             description: String(data.get("description") || ""),
@@ -221,12 +252,16 @@ function openAdSheet(main, context, ad) {
             ctaText: String(data.get("ctaText") || ""),
             targetURL,
             placement: String(data.get("placement") || "home_banner"),
-            active: data.get("active") === "on",
+            active: makeActive,
             startDate: String(data.get("startDate") || ""),
             endDate: String(data.get("endDate") || ""),
           });
+          if (makeActive && !context.state.settings?.adsEnabled) {
+            await saveSettings({ adsEnabled: true });
+            context.state.settings = { ...(context.state.settings || {}), adsEnabled: true };
+          }
           close();
-          toast(isEdit ? "Ad updated." : "Ad created.", { type: "success" });
+          toast(isEdit ? "Ad updated." : "Ad created and live.", { type: "success" });
           await renderAds(main, context);
         } catch (error) {
           setButtonLoading(saveButton, false);

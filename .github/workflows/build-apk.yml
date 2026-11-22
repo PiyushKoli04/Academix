@@ -49,18 +49,24 @@ jobs:
       - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      - name: Accept Android SDK licenses
-        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
-
-      - name: Point Bubblewrap at the preinstalled JDK and Android SDK
+      - name: Prepare Android SDK in the layout Bubblewrap expects
         run: |
+          # Bubblewrap needs <sdk>/tools (or <sdk>/bin) plus build-tools 36.1.0.
+          # The runner's SDK uses the newer cmdline-tools layout, so build a private one.
+          SDK="$HOME/android-sdk"
+          mkdir -p "$SDK"
+          ln -sfn "$ANDROID_HOME/cmdline-tools/latest" "$SDK/tools"
+          SDKMGR="$SDK/tools/bin/sdkmanager"
+          yes | "$SDKMGR" --sdk_root="$SDK" --licenses > /dev/null || true
+          "$SDKMGR" --sdk_root="$SDK" "build-tools;36.1.0" "platforms;android-36" "platform-tools"
           mkdir -p "$HOME/.bubblewrap"
           cat > "$HOME/.bubblewrap/config.json" <<JSON
           {
             "jdkPath": "$JAVA_HOME",
-            "androidSdkPath": "$ANDROID_HOME"
+            "androidSdkPath": "$SDK"
           }
           JSON
+          ls "$SDK" "$SDK/build-tools"
 
       - name: Serve the icon locally for Bubblewrap
         run: |
