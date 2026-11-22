@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -29,6 +30,8 @@ public class MainActivity extends Activity {
     private WebView webView;
     private boolean pageReady = false;
     private String queuedAuthJs = null;
+    private ValueCallback<Uri[]> fileCallback;
+    private static final int REQ_FILE = 7001;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,7 +57,25 @@ public class MainActivity extends Activity {
 
         webView.addJavascriptInterface(new NativeBridge(), "AcademixNative");
 
-        webView.setWebChromeClient(new WebChromeClient());
+        webView.setWebChromeClient(new WebChromeClient() {
+            // Makes <input type="file"> open the phone's file / media picker.
+            @Override
+            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback,
+                                             FileChooserParams params) {
+                if (fileCallback != null) {
+                    fileCallback.onReceiveValue(null);
+                }
+                fileCallback = callback;
+                try {
+                    startActivityForResult(params.createIntent(), REQ_FILE);
+                } catch (Exception e) {
+                    fileCallback = null;
+                    callback.onReceiveValue(null);
+                    return false;
+                }
+                return true;
+            }
+        });
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -189,6 +210,18 @@ public class MainActivity extends Activity {
             }
         } catch (Exception ignored) {
         }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQ_FILE || fileCallback == null) return;
+        Uri[] result = null;
+        if (resultCode == RESULT_OK && data != null) {
+            result = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
+        }
+        fileCallback.onReceiveValue(result);
+        fileCallback = null;
     }
 
     private void openExternal(Uri uri) {
