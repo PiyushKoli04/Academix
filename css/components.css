@@ -1527,6 +1527,8 @@
 .subject-row {
   position: relative;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: 54px minmax(0, 1fr) auto;
   align-items: center;
@@ -1537,6 +1539,7 @@
   box-shadow: var(--shadow-card);
   border: 1px solid rgba(21, 21, 21, 0.025);
   text-align: left;
+  overflow: hidden;
   transition:
     transform var(--speed-base) var(--ease-out),
     box-shadow var(--speed-base) ease;
@@ -1575,7 +1578,11 @@
 }
 
 .subject-row__copy {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .subject-row__eyebrow {
@@ -1589,6 +1596,9 @@
 }
 
 .subject-row__title {
+  display: block;
+  width: 100%;
+  min-width: 0;
   font-size: 13.5px;
   font-weight: 600;
   letter-spacing: -0.025em;
@@ -1599,6 +1609,9 @@
 }
 
 .subject-row__desc {
+  display: block;
+  width: 100%;
+  min-width: 0;
   margin-top: 3px;
   font-size: 10.5px;
   color: var(--text-secondary);
@@ -1613,13 +1626,16 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .subject-row__right {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  justify-content: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .subject-row__arrow {
@@ -3292,6 +3308,12 @@
   .module-row {
     min-height: 44px;
     min-width: 44px;
+  }
+
+  .subject-row {
+    grid-template-columns: 46px minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 12px;
   }
 
   .icon-btn {

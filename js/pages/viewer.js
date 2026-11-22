@@ -84,7 +84,7 @@ export async function renderViewer(root, context) {
 
     <div class="viewer-stage" id="viewer-stage">
       <div class="viewer-frame-wrap" id="viewer-frame-wrap">
-        <iframe class="viewer-frame" id="viewer-frame" src="${escapeHtml(previewUrl)}" title="${escapeHtml(fileDoc.title || "PDF preview")}" loading="eager" referrerpolicy="no-referrer" allow="autoplay"></iframe>
+        <iframe class="viewer-frame is-ready" id="viewer-frame" src="${escapeHtml(previewUrl)}" title="${escapeHtml(fileDoc.title || "PDF preview")}" loading="eager" allow="autoplay; encrypted-media"></iframe>
         <div class="viewer-popout-shield" aria-hidden="true"></div>
       </div>
       <div class="viewer-loading" id="viewer-loading" role="status">
@@ -120,6 +120,7 @@ export async function renderViewer(root, context) {
   const hideLoading = () => {
     window.clearTimeout(loadTimer);
     loading?.classList.add("is-hidden");
+    iframe?.classList.add("is-ready");
   };
 
   const showError = () => {
@@ -135,7 +136,8 @@ export async function renderViewer(root, context) {
     loading?.classList.remove("is-hidden");
     iframe.src = previewUrl;
     window.clearTimeout(loadTimer);
-    loadTimer = window.setTimeout(showError, 18000);
+    // Give it a fast fallback to make sure the iframe displays even if cross-origin load event is delayed
+    loadTimer = window.setTimeout(hideLoading, 5000);
   };
 
   iframe?.addEventListener("load", hideLoading);

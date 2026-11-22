@@ -1,0 +1,177 @@
+name: Build Android APK
+
+# Manual only. Nothing runs on commit or push.
+# GitHub -> Actions -> "Build Android APK" -> Run workflow
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: "Version name shown to users (e.g. 1.0.0)"
+        required: true
+        default: "1.0.0"
+      version_code:
+        description: "Version code (whole number, increase it on every new release)"
+        required: true
+        default: "1"
+
+permissions:
+  contents: read
+
+env:
+  APP_NAME: Academix
+  APP_HOST: academix.syntaxsyndicate.co.in
+  PACKAGE_ID: in.co.syntaxsyndicate.academix
+  KEY_ALIAS: academix
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check launcher icon exists
+        run: test -f android/icon.png || (echo "::error::Add your icon at android/icon.png" && exit 1)
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: Point Bubblewrap at the preinstalled JDK and Android SDK
+        run: |
+          mkdir -p "$HOME/.bubblewrap"
+          cat > "$HOME/.bubblewrap/config.json" <<JSON
+          {
+            "jdkPath": "$JAVA_HOME",
+            "androidSdkPath": "$ANDROID_HOME"
+          }
+          JSON
+
+      - name: Serve the icon locally for Bubblewrap
+        run: |
+          mkdir -p /tmp/site
+          cp android/icon.png /tmp/site/icon.png
+          nohup python3 -m http.server 8080 --directory /tmp/site > /dev/null 2>&1 &
+          sleep 2
+          curl -fsI http://localhost:8080/icon.png
+
+      - name: Prepare signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          mkdir -p twa
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > twa/android.keystore
+            echo "::add-mask::$KEYSTORE_PASSWORD"
+            echo "KS_PASS=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "KEY_NOTE=Signed with your saved key from repository secrets." >> "$GITHUB_ENV"
+          else
+            KS_PASS="$(openssl rand -hex 16)"
+            echo "::add-mask::$KS_PASS"
+            keytool -genkeypair -v \
+              -keystore twa/android.keystore -alias "$KEY_ALIAS" \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "$KS_PASS" -keypass "$KS_PASS" \
+              -dname "CN=Academix, O=Syntax Syndicate, C=IN"
+            echo "KS_PASS=$KS_PASS" >> "$GITHUB_ENV"
+            echo "KEY_NOTE=One-time key created for this run and NOT saved. Future builds need the same key to update an installed app, so add the secrets described in the summary." >> "$GITHUB_ENV"
+          fi
+
+      - name: Write twa-manifest.json
+        env:
+          VERSION_NAME: ${{ inputs.version_name }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          cat > twa/twa-manifest.json <<JSON
+          {
+            "packageId": "$PACKAGE_ID",
+            "host": "$APP_HOST",
+            "name": "$APP_NAME",
+            "launcherName": "$APP_NAME",
+            "display": "standalone",
+            "orientation": "portrait",
+            "themeColor": "#F4F3F5",
+            "themeColorDark": "#1C1C1E",
+            "navigationColor": "#F4F3F5",
+            "navigationColorDark": "#1C1C1E",
+            "navigationDividerColor": "#F4F3F5",
+            "navigationDividerColorDark": "#1C1C1E",
+            "backgroundColor": "#F4F3F5",
+            "enableNotifications": false,
+            "startUrl": "/",
+            "fullScopeUrl": "https://$APP_HOST/",
+            "iconUrl": "http://localhost:8080/icon.png",
+            "maskableIconUrl": "http://localhost:8080/icon.png",
+            "appVersionName": "$VERSION_NAME",
+            "appVersionCode": $VERSION_CODE,
+            "splashScreenFadeOutDuration": 300,
+            "fallbackType": "customtabs",
+            "enableSiteSettingsShortcut": false,
+            "shortcuts": [],
+            "signingKey": { "path": "./android.keystore", "alias": "$KEY_ALIAS" },
+            "generatorApp": "bubblewrap-cli"
+          }
+          JSON
+          cat twa/twa-manifest.json
+
+      - name: Generate Android project
+        working-directory: twa
+        run: bubblewrap update --manifest=./twa-manifest.json --skipVersionUpgrade
+
+      - name: Build signed APK
+        working-directory: twa
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ env.KS_PASS }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ env.KS_PASS }}
+        run: bubblewrap build --manifest=./twa-manifest.json --skipPwaValidation
+
+      - name: Rename APK
+        run: |
+          ls -la twa/*.apk
+          cp twa/app-release-signed.apk "academix-${{ inputs.version_name }}.apk"
+
+      - name: Summary (certificate fingerprint for assetlinks.json)
+        run: |
+          FP="$(keytool -list -v -keystore twa/android.keystore -alias "$KEY_ALIAS" -storepass "$KS_PASS" | grep 'SHA256:' | head -1 | sed 's/.*SHA256: *//')"
+          {
+            echo "## Academix APK built"
+            echo ""
+            echo "$KEY_NOTE"
+            echo ""
+            echo "### Remove the browser address bar"
+            echo "Host this file at \`https://$APP_HOST/.well-known/assetlinks.json\`:"
+            echo ""
+            echo '```json'
+            echo '[{'
+            echo '  "relation": ["delegate_permission/common.handle_all_urls"],'
+            echo '  "target": {'
+            echo '    "namespace": "android_app",'
+            echo "    \"package_name\": \"$PACKAGE_ID\","
+            echo "    \"sha256_cert_fingerprints\": [\"$FP\"]"
+            echo '  }'
+            echo '}]'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: academix-apk
+          path: academix-${{ inputs.version_name }}.apk
+          retention-days: 30
