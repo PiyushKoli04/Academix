@@ -137,6 +137,7 @@ jobs:
             "maskableIconUrl": "http://localhost:8080/icon.png",
             "appVersionName": "$VERSION_NAME",
             "appVersionCode": $VERSION_CODE,
+            "minSdkVersion": 24,
             "splashScreenFadeOutDuration": 300,
             "fallbackType": "customtabs",
             "enableSiteSettingsShortcut": false,
@@ -152,22 +153,17 @@ jobs:
         working-directory: twa
         run: bubblewrap update --manifest=./twa-manifest.json --skipVersionUpgrade
 
-      - name: Raise minSdkVersion to 24 (androidbrowserhelper 2.7.x requires it)
+      - name: Verify minSdkVersion is 24 (androidbrowserhelper 2.7.x requires it)
         working-directory: twa
         run: |
-          # Bubblewrap's template still sets minSdkVersion 21, but the
-          # androidbrowserhelper library it pulls in needs 24 or higher.
-          FILES="$(grep -rlE 'minSdk(Version)?[ =]+21' --include=build.gradle --include=build.gradle.kts --include=*.gradle . || true)"
-          if [ -z "$FILES" ]; then
-            echo "::error::Could not find minSdkVersion 21 in the generated project"
-            grep -rn "minSdk" --include=*.gradle --include=*.kts . || true
-            exit 1
-          fi
+          grep -rn "minSdk" --include=*.gradle --include=*.kts . || true
+          # Safety net: if the manifest setting did not take, patch any leftover 21.
+          FILES="$(grep -rlE 'minSdk(Version)?[ =]+2[0-3]\b' --include=*.gradle --include=*.kts . || true)"
           for f in $FILES; do
-            sed -i -E 's/(minSdk(Version)?[ =]+)21/\124/' "$f"
+            sed -i -E 's/(minSdk(Version)?[ =]+)2[0-3]\b/\124/' "$f"
           done
-          echo "Patched: $FILES"
-          grep -rn "minSdk" --include=*.gradle --include=*.kts .
+          grep -rqE 'minSdk(Version)?[ =]+24\b' --include=*.gradle --include=*.kts . \
+            || { echo "::error::minSdkVersion 24 not found in generated project"; exit 1; }
 
       - name: Build and sign APK
         working-directory: twa
