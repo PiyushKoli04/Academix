@@ -207,17 +207,26 @@ export function renderProfile(root, context = {}) {
           <div class="profile-menu">
             <button class="profile-menu__item" type="button" id="profile-edit">
               <span class="profile-menu__icon">${icon("user")}</span>
-              <span class="profile-menu__copy"><span class="profile-menu__label">Edit profile</span><span class="profile-menu__value">${escapeHtml(profile.name || "Name and photo")}</span></span>
+              <div class="profile-menu__copy">
+                <span class="profile-menu__label">Edit profile</span>
+                <span class="profile-menu__value">${escapeHtml(profile.name || "Name and photo")}</span>
+              </div>
               <span class="profile-menu__chevron">${icon("chevron-right")}</span>
             </button>
             <button class="profile-menu__item" type="button" id="profile-setup">
               <span class="profile-menu__icon">${icon("graduation-cap")}</span>
-              <span class="profile-menu__copy"><span class="profile-menu__label">Year and branch</span><span class="profile-menu__value">${escapeHtml(yearLabel(state.years.find((year) => year.id === profile.yearId)))} · ${escapeHtml(branchName(profile.branchId || selection.branchId))}</span></span>
+              <div class="profile-menu__copy">
+                <span class="profile-menu__label">Year and branch</span>
+                <span class="profile-menu__value">${escapeHtml(yearLabel(state.years.find((year) => year.id === profile.yearId)))} · ${escapeHtml(branchName(profile.branchId || selection.branchId))}</span>
+              </div>
               <span class="profile-menu__chevron">${icon("chevron-right")}</span>
             </button>
             <a class="profile-menu__item" href="#/bookmarks">
               <span class="profile-menu__icon">${icon("bookmark")}</span>
-              <span class="profile-menu__copy"><span class="profile-menu__label">Your bookmarks</span><span class="profile-menu__value">${bookmarks.length} saved ${bookmarks.length === 1 ? "item" : "items"}</span></span>
+              <div class="profile-menu__copy">
+                <span class="profile-menu__label">Your bookmarks</span>
+                <span class="profile-menu__value">${bookmarks.length} saved ${bookmarks.length === 1 ? "item" : "items"}</span>
+              </div>
               <span class="profile-menu__chevron">${icon("chevron-right")}</span>
             </a>
           </div>
@@ -228,12 +237,18 @@ export function renderProfile(root, context = {}) {
           <div class="profile-menu">
             <a class="profile-menu__item" href="#/about">
               <span class="profile-menu__icon">${icon("info")}</span>
-              <span class="profile-menu__copy"><span class="profile-menu__label">About Academix</span><span class="profile-menu__value">Credits, policies, and contact</span></span>
+              <div class="profile-menu__copy">
+                <span class="profile-menu__label">About Academix</span>
+                <span class="profile-menu__value">Credits, policies, and contact</span>
+              </div>
               <span class="profile-menu__chevron">${icon("chevron-right")}</span>
             </a>
             ${admin ? `<a class="profile-menu__item" href="#/admin">
               <span class="profile-menu__icon">${icon("shield")}</span>
-              <span class="profile-menu__copy"><span class="profile-menu__label">Admin dashboard</span><span class="profile-menu__value">Manage structure, documents, and users</span></span>
+              <div class="profile-menu__copy">
+                <span class="profile-menu__label">Admin dashboard</span>
+                <span class="profile-menu__value">Manage structure, documents, and users</span>
+              </div>
               <span class="profile-menu__chevron">${icon("chevron-right")}</span>
             </a>` : ""}
           </div>
@@ -244,15 +259,24 @@ export function renderProfile(root, context = {}) {
           <div class="profile-menu">
             <div class="profile-menu__item">
               <span class="profile-menu__icon">${icon("mail")}</span>
-              <span class="profile-menu__copy"><span class="profile-menu__label">Email</span><span class="profile-menu__value">${escapeHtml(profile.email || "—")}</span></span>
+              <div class="profile-menu__copy">
+                <span class="profile-menu__label">Email</span>
+                <span class="profile-menu__value">${escapeHtml(profile.email || "—")}</span>
+              </div>
             </div>
             <div class="profile-menu__item">
               <span class="profile-menu__icon">${icon("calendar")}</span>
-              <span class="profile-menu__copy"><span class="profile-menu__label">Member since</span><span class="profile-menu__value">${escapeHtml(formatDate(profile.createdAt))}</span></span>
+              <div class="profile-menu__copy">
+                <span class="profile-menu__label">Member since</span>
+                <span class="profile-menu__value">${escapeHtml(formatDate(profile.createdAt))}</span>
+              </div>
             </div>
             <button class="profile-menu__item" type="button" id="profile-signout">
               <span class="profile-menu__icon" style="color:var(--red);background:var(--red-soft)">${icon("log-out")}</span>
-              <span class="profile-menu__copy"><span class="profile-menu__label" style="color:var(--red)">Sign out</span><span class="profile-menu__value">Use a different account</span></span>
+              <div class="profile-menu__copy">
+                <span class="profile-menu__label" style="color:var(--red)">Sign out</span>
+                <span class="profile-menu__value">Use a different account</span>
+              </div>
               <span class="profile-menu__chevron">${icon("chevron-right")}</span>
             </button>
           </div>

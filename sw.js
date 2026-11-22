@@ -1,4 +1,4 @@
-const CACHE_VERSION = "academix-v2";
+const CACHE_VERSION = "academix-v3";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const FONT_CACHE = `${CACHE_VERSION}-fonts`;
 
@@ -35,7 +35,8 @@ const APP_SHELL = [
   "./js/pages/admin/contributors.js",
   "./js/pages/admin/ads.js",
   "./js/pages/admin/users.js",
-  "./icons/favicon.svg",
+  "./icons/favicon.png",
+  "./icons/favicon.ico",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/maskable-512.png",

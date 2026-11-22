@@ -1481,6 +1481,8 @@
 [data-theme="dark"] .helping-row__icon--assignment { background: rgba(255, 124, 124, 0.1); }
 
 .helping-row__copy {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   flex: 1;
 }
@@ -2032,6 +2034,8 @@
 }
 
 .bookmark-card__copy {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   flex: 1;
 }
@@ -2350,19 +2354,28 @@
 }
 
 .profile-menu__copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   min-width: 0;
   flex: 1;
 }
 
 .profile-menu__label {
+  display: block;
   font-size: 11.5px;
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
 }
 
 .profile-menu__value {
-  margin-top: 1px;
-  font-size: 9.5px;
+  display: block;
+  margin-top: 3px;
+  font-size: 10.5px;
+  line-height: 1.35;
   color: var(--text-hint);
+  word-break: break-word;
 }
 
 .profile-menu__chevron {

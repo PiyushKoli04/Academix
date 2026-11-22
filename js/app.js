@@ -360,7 +360,7 @@ function renderShell(active) {
       <aside class="sidebar" aria-label="Primary navigation">
         <a class="sidebar__brand" href="#/home" aria-label="Academix home">
           <span class="brand-mark brand-mark--lime brand-mark--sm" aria-hidden="true">
-            <svg viewBox="0 0 32 32" fill="none"><path d="M8 23.5 15.9 7l8.1 16.5M11.6 17h8.8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <img src="./icons/icon-192.png" alt="Academix" width="38" height="38" />
           </span>
           <span>
             <span class="sidebar__wordmark">Academix</span>
@@ -399,7 +399,7 @@ function renderSetupScreen() {
     <main class="setup-screen">
       <section class="setup-card">
         <span class="brand-mark brand-mark--lime" aria-hidden="true">
-          <svg viewBox="0 0 32 32" fill="none"><path d="M8 23.5 15.9 7l8.1 16.5M11.6 17h8.8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <img src="./icons/icon-192.png" alt="Academix" width="52" height="52" />
         </span>
         <h1><span class="fw-light">One quick</span> <strong>setup.</strong></h1>
         <p>Academix is ready, but it needs your Firebase project details before students can sign in. Open <strong>firebase.config.js</strong> and paste the web app config from the Firebase console.</p>

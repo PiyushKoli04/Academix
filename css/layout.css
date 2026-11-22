@@ -70,6 +70,8 @@ body[data-page="viewer"] .app-bg {
   margin: 0 auto;
   padding: 24px 18px 24px;
   overflow-x: clip;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 @supports not (overflow: clip) {
@@ -80,6 +82,9 @@ body[data-page="viewer"] .app-bg {
 
 .page {
   animation: fade-up var(--speed-slow) var(--ease-out) both;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .page--compact {
