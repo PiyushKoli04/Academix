@@ -1,4 +1,10 @@
-import { signOutUser, updateOwnProfile } from "../auth.js";
+import {
+  isEmailPasswordUser,
+  isGoogleUser,
+  openSecuritySheet,
+  signOutUser,
+  updateOwnProfile,
+} from "../auth.js";
 import { openLegalSheet } from "../legal.js";
 import {
   branchName,
@@ -171,6 +177,8 @@ export function renderProfile(root, context = {}) {
   const completedCount = Object.values(completedModules).reduce((total, values) => total + (Array.isArray(values) ? values.length : 0), 0);
   const admin = isAdmin();
   const version = state.settings?.version || "1.0.0";
+  const hasPassword = isEmailPasswordUser(state.user);
+  const hasGoogle = isGoogleUser(state.user);
 
   setPageMeta("Profile", "Manage your Academix profile, study setup, and app preferences.");
 
@@ -203,6 +211,16 @@ export function renderProfile(root, context = {}) {
       </header>
 
       <div class="profile-grid">
+        ${hasGoogle && !hasPassword ? `
+        <div class="profile-security-banner">
+          <div class="profile-security-banner__icon">${icon("shield")}</div>
+          <div class="profile-security-banner__copy">
+            <strong>Set a password for email login</strong>
+            <p>You’re signed in via Google. Add a password so you can also log in using your email address anytime.</p>
+          </div>
+          <button class="btn btn--white btn--sm" type="button" id="profile-banner-set-pwd">Set password</button>
+        </div>` : ""}
+
         <section class="profile-section">
           <h2 class="profile-section__title">Study setup</h2>
           <div class="profile-menu">
@@ -272,6 +290,20 @@ export function renderProfile(root, context = {}) {
         </section>
 
         <section class="profile-section">
+          <h2 class="profile-section__title">Security</h2>
+          <div class="profile-menu">
+            <button class="profile-menu__item" type="button" id="profile-security">
+              <span class="profile-menu__icon">${icon("shield-check")}</span>
+              <div class="profile-menu__copy">
+                <span class="profile-menu__label">Security</span>
+                <span class="profile-menu__value">${hasPassword ? "Password set · Tap to update" : "Set password for email login"}</span>
+              </div>
+              <span class="profile-menu__chevron">${icon("chevron-right")}</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="profile-section">
           <h2 class="profile-section__title">Account</h2>
           <div class="profile-menu">
             <div class="profile-menu__item">
@@ -312,6 +344,13 @@ export function renderProfile(root, context = {}) {
   </div>`;
 
   const openEditor = () => openEditProfile(root, context);
+  const handleSecurity = () => {
+    openSecuritySheet(state.user || { email: profile.email }, {
+      onDone: () => renderProfile(root, context),
+    });
+  };
+  root.querySelector("#profile-security")?.addEventListener("click", handleSecurity);
+  root.querySelector("#profile-banner-set-pwd")?.addEventListener("click", handleSecurity);
   root.querySelector("#profile-edit")?.addEventListener("click", openEditor);
   root.querySelector("#edit-profile-top")?.addEventListener("click", openEditor);
   root.querySelector("#edit-avatar")?.addEventListener("click", openEditor);

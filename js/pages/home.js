@@ -287,30 +287,35 @@ function bindSearch(root) {
     }
     const currentRequest = ++requestId;
     results.hidden = false;
-    results.innerHTML = `<div class="search-result"><span class="search-result__icon">${icon("search")}</span><span class="search-result__copy"><span class="search-result__title">Searching…</span></span></div>`;
+    results.innerHTML = `<div class="search-result"><span class="search-result__icon">${icon("search")}</span><span class="search-result__copy"><span class="search-result__title">Searching all notes…</span></span></div>`;
     try {
-      const selection = getEffectiveSelection();
-      const found = await searchCatalog(text, {
-        yearId: selection.yearId,
-        semester: selection.semester,
-        branchId: selection.branchId,
-      });
+      const found = await searchCatalog(text);
       if (currentRequest !== requestId) return;
-      const subjectItems = found.subjects.slice(0, 5).map((subject) => `<a class="search-result" href="#/subject/${escapeHtml(subject.id)}">
+      const subjectItems = found.subjects.slice(0, 6).map((subject) => `<a class="search-result" href="#/subject/${escapeHtml(subject.id)}">
         <span class="search-result__icon" style="background:${safeColor(subject.color)}">${icon(subject.icon || "book-open")}</span>
         <span class="search-result__copy"><span class="search-result__title">${escapeHtml(subject.name)}</span><span class="search-result__meta">${escapeHtml(subject.code || "")} · Sem ${escapeHtml(subject.semester || "")}</span></span>
         <span class="search-result__arrow">${icon("chevron-right", "icon--sm")}</span>
       </a>`);
-      const documentItems = found.documents.slice(0, 7).map((document) => `<a class="search-result" href="#/viewer/${escapeHtml(document.id)}">
-        <span class="search-result__icon">${icon(DOC_TYPE_META[document.type]?.icon || "file-text")}</span>
-        <span class="search-result__copy"><span class="search-result__title">${escapeHtml(document.title)}</span><span class="search-result__meta">${escapeHtml(DOC_TYPE_META[document.type]?.label || "Document")}${document.description ? ` · ${escapeHtml(document.description)}` : ""}</span></span>
-        <span class="search-result__arrow">${icon("chevron-right", "icon--sm")}</span>
-      </a>`);
+      const documentItems = found.documents.slice(0, 10).map((document) => {
+        const typeMeta = DOC_TYPE_META[document.type] || DOC_TYPE_META.other;
+        const metaParts = [];
+        if (document.subjectCode || document.subjectName) metaParts.push(document.subjectCode || document.subjectName);
+        if (document.subjectSemester) metaParts.push(`Sem ${document.subjectSemester}`);
+        metaParts.push(typeMeta.label);
+        return `<a class="search-result" href="#/viewer/${escapeHtml(document.id)}">
+          <span class="search-result__icon">${icon(typeMeta.icon || "file-text")}</span>
+          <span class="search-result__copy">
+            <span class="search-result__title">${escapeHtml(document.title)}</span>
+            <span class="search-result__meta">${escapeHtml(metaParts.join(" · "))}${document.description ? ` · ${escapeHtml(document.description)}` : ""}</span>
+          </span>
+          <span class="search-result__arrow">${icon("chevron-right", "icon--sm")}</span>
+        </a>`;
+      });
       if (!subjectItems.length && !documentItems.length) {
         results.innerHTML = `<div class="empty-mini">
           <span class="empty-mini__icon">${icon("search")}</span>
           <p class="empty-mini__title">No matches for “${escapeHtml(text)}”</p>
-          <p class="empty-mini__text">Try a subject code, module name, or document type.</p>
+          <p class="empty-mini__text">Try another subject name, code, or document title.</p>
         </div>`;
         return;
       }
@@ -328,16 +333,27 @@ function bindSearch(root) {
     }
   };
 
+  const doClear = (event) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    input.value = "";
+    hideResults();
+    input.focus();
+  };
+
   const debouncedSearch = debounce(renderResults, 260);
   input.addEventListener("input", debouncedSearch);
+  input.addEventListener("search", () => {
+    if (!input.value.trim()) hideResults();
+    else renderResults();
+  });
   input.addEventListener("focus", () => {
     if (input.value.trim().length >= 2 && results.innerHTML) results.hidden = false;
   });
-  clear.addEventListener("click", () => {
-    input.value = "";
-    input.focus();
-    hideResults();
-  });
+  clear.addEventListener("pointerdown", doClear);
+  clear.addEventListener("click", doClear);
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     renderResults();

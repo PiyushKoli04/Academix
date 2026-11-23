@@ -885,7 +885,15 @@ export async function searchCatalog(rawQuery, filters = {}) {
       subject.code,
     ].join(" ").toLowerCase();
     return haystack.includes(queryText);
-  }).slice(0, 16);
+  }).slice(0, 25).map((document) => {
+    const subject = subjectMap.get(document.subjectId);
+    return {
+      ...document,
+      subjectName: subject?.name || "",
+      subjectCode: subject?.code || "",
+      subjectSemester: subject?.semester || "",
+    };
+  });
 
   return { subjects: subjectMatches, documents: documentMatches };
 }

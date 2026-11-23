@@ -1,8 +1,11 @@
 import { auth } from "./firebase.js";
 import {
+  EmailAuthProvider,
   GoogleAuthProvider,
+  confirmPasswordReset,
   createUserWithEmailAndPassword,
   getRedirectResult,
+  linkWithCredential,
   onAuthStateChanged,
   sendEmailVerification,
   sendPasswordResetEmail,
@@ -11,7 +14,9 @@ import {
   signInWithPopup,
   signInWithRedirect,
   signOut,
+  updatePassword,
   updateProfile,
+  verifyPasswordResetCode,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import {
   doc,
@@ -21,7 +26,7 @@ import {
   updateDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { db } from "./firebase.js";
-import { escapeAttr, escapeHtml, friendlyAuthError, openSheet, setButtonLoading, toast } from "./ui.js";
+import { escapeAttr, escapeHtml, friendlyAuthError, icon, openSheet, setButtonLoading, toast } from "./ui.js";
 import { clearUserState, state } from "./state.js";
 import { isNativeApp, onBrowserAuth, openBrowserLogin } from "./native.js";
 
@@ -32,8 +37,12 @@ function userRef(uid) {
   return doc(db, "users", uid);
 }
 
-function isEmailPasswordUser(user) {
+export function isEmailPasswordUser(user) {
   return Boolean(user?.providerData?.some((provider) => provider.providerId === "password"));
+}
+
+export function isGoogleUser(user) {
+  return Boolean(user?.providerData?.some((provider) => provider.providerId === "google.com"));
 }
 
 export function needsEmailVerification(user) {
@@ -132,6 +141,7 @@ if (isNativeApp()) {
       detail = { error: payload.error };
     } else {
       try {
+        sessionStorage.setItem("academix_google_login_notice", "true");
         await signInWithCredential(auth, GoogleAuthProvider.credential(payload.idToken, payload.accessToken || undefined));
       } catch (error) {
         detail = { error: friendlyAuthError(error) };
@@ -172,6 +182,7 @@ async function handleGoogleSignIn() {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
   try {
+    sessionStorage.setItem("academix_google_login_notice", "true");
     await signInWithPopup(auth, provider);
   } catch (error) {
     if (error?.code === "auth/popup-blocked") {
@@ -214,21 +225,21 @@ function validateEmail(value) {
   return EMAIL_PATTERN.test(String(value || "").trim());
 }
 
-function openForgotPassword(prefill = "") {
+export function openForgotPassword(prefill = "") {
   openSheet({
     title: "Reset your password",
-    subtitle: "We’ll email you a secure link to choose a new password.",
+    subtitle: "We’ll email you a secure link via Firebase to choose a new password.",
     size: "auto",
     content: `<form class="sheet-form" id="reset-form" novalidate>
       <div class="field">
-        <label class="field__label" for="reset-email">College email</label>
+        <label class="field__label" for="reset-email">Account email</label>
         <input class="input" id="reset-email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@college.edu" value="${escapeAttr(prefill)}" required />
         <p class="field__error" hidden></p>
       </div>
-      <div class="notice">${escapeHtml("If an account exists for this email, a reset link will arrive shortly. Check your spam folder too.")}</div>
+      <div class="notice">${escapeHtml("Firebase will send a secure password reset link to this email address. Check your inbox and spam folder.")}</div>
       <button class="btn btn--primary btn--block" type="submit">Send reset link</button>
     </form>`,
-    onMount(sheet) {
+    onMount(sheet, close) {
       const form = sheet.querySelector("#reset-form");
       const emailInput = form.querySelector("#reset-email");
       form.addEventListener("submit", async (event) => {
@@ -247,20 +258,268 @@ function openForgotPassword(prefill = "") {
         try {
           await sendPasswordResetEmail(auth, email);
           toast("Password reset email sent. Check your inbox.", { type: "success" });
-          sheet.querySelector("[data-sheet-close]")?.click();
+          close();
         } catch (errorCaught) {
           const message = errorCaught?.code === "auth/user-not-found"
             ? "If an account exists for this email, a reset link will arrive shortly."
             : friendlyAuthError(errorCaught);
           if (errorCaught?.code === "auth/user-not-found") {
             toast(message, { type: "info" });
-            sheet.querySelector("[data-sheet-close]")?.click();
+            close();
           } else {
             error.textContent = message;
             error.hidden = false;
             setButtonLoading(button, false);
           }
         }
+      });
+    },
+  });
+}
+
+export function openResetPasswordModal(oobCode, email = "") {
+  openSheet({
+    title: "Choose a new password",
+    subtitle: email ? `Enter a new password for ${email}.` : "Enter a new password for your account.",
+    size: "auto",
+    closeOnBackdrop: false,
+    content: `<form class="sheet-form" id="confirm-reset-form" novalidate>
+      <div class="field">
+        <label class="field__label" for="new-password">New password</label>
+        <input class="input" id="new-password" name="password" type="password" placeholder="At least 6 characters" minlength="6" required autocomplete="new-password" />
+        <p class="field__error" id="new-password-error" hidden></p>
+      </div>
+      <div class="field">
+        <label class="field__label" for="confirm-password">Confirm new password</label>
+        <input class="input" id="confirm-password" name="confirmPassword" type="password" placeholder="Repeat your new password" minlength="6" required autocomplete="new-password" />
+        <p class="field__error" id="confirm-password-error" hidden></p>
+      </div>
+      <button class="btn btn--primary btn--block" type="submit">Update password</button>
+    </form>`,
+    onMount(sheet, close) {
+      const form = sheet.querySelector("#confirm-reset-form");
+      const pwdInput = form.querySelector("#new-password");
+      const confirmInput = form.querySelector("#confirm-password");
+      const pwdError = form.querySelector("#new-password-error");
+      const confirmError = form.querySelector("#confirm-password-error");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const pwd = pwdInput.value;
+        const confirm = confirmInput.value;
+        let valid = true;
+
+        if (pwd.length < 6) {
+          pwdError.textContent = "Password must be at least 6 characters.";
+          pwdError.hidden = false;
+          valid = false;
+        } else {
+          pwdError.hidden = true;
+        }
+
+        if (pwd !== confirm) {
+          confirmError.textContent = "Passwords do not match.";
+          confirmError.hidden = false;
+          valid = false;
+        } else {
+          confirmError.hidden = true;
+        }
+
+        if (!valid) return;
+
+        const button = form.querySelector('button[type="submit"]');
+        setButtonLoading(button, true, "Updating password");
+        try {
+          await confirmPasswordReset(auth, oobCode, pwd);
+          toast("Password reset successful! You can now log in.", { type: "success" });
+          const cleanUrl = window.location.origin + window.location.pathname + (window.location.hash ? window.location.hash.split("?")[0] : "");
+          window.history.replaceState({}, document.title, cleanUrl);
+          close();
+        } catch (err) {
+          setButtonLoading(button, false);
+          toast(friendlyAuthError(err) || "Failed to reset password.", { type: "error" });
+        }
+      });
+    },
+  });
+}
+
+export async function checkAuthActionUrl() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const hashPart = window.location.hash.includes("?") ? window.location.hash.split("?")[1] : "";
+  const hashParams = new URLSearchParams(hashPart);
+  const mode = urlParams.get("mode") || hashParams.get("mode");
+  const oobCode = urlParams.get("oobCode") || hashParams.get("oobCode");
+
+  if (mode === "resetPassword" && oobCode) {
+    try {
+      const email = await verifyPasswordResetCode(auth, oobCode);
+      openResetPasswordModal(oobCode, email);
+    } catch (error) {
+      toast("This password reset link is invalid or has expired.", { type: "error" });
+    }
+  }
+}
+
+export async function setOrUpdatePassword(user, newPassword) {
+  if (!user) throw new Error("No authenticated user.");
+  const hasPassword = isEmailPasswordUser(user);
+  if (!hasPassword) {
+    const cred = EmailAuthProvider.credential(user.email, newPassword);
+    try {
+      await linkWithCredential(user, cred);
+      return { mode: "linked" };
+    } catch (err) {
+      if (err?.code === "auth/provider-already-linked" || err?.code === "auth/credential-already-in-use") {
+        await updatePassword(user, newPassword);
+        return { mode: "updated" };
+      }
+      throw err;
+    }
+  } else {
+    await updatePassword(user, newPassword);
+    return { mode: "updated" };
+  }
+}
+
+export function openSecuritySheet(user, { onDone } = {}) {
+  const activeUser = user || auth.currentUser;
+  if (!activeUser || !activeUser.email) {
+    toast("No user email available.", { type: "error" });
+    return;
+  }
+
+  const hasPassword = isEmailPasswordUser(activeUser);
+  const hasGoogle = isGoogleUser(activeUser);
+
+  openSheet({
+    title: hasPassword ? "Security & Password" : "Set account password",
+    subtitle: `Account: ${escapeHtml(activeUser.email)}`,
+    size: "auto",
+    content: `<div class="sheet-form">
+      <div class="security-status-card">
+        <div class="security-status-card__info">
+          <span class="security-status-card__label">Sign-in methods</span>
+          <strong class="security-status-card__val">${hasGoogle ? "Google" : ""}${hasGoogle && hasPassword ? " · " : ""}${hasPassword ? "Email & Password" : "Password not set"}</strong>
+        </div>
+        <span class="chip chip--sm ${hasPassword ? "chip--lime" : "chip--outline"}">${hasPassword ? "Active" : "Not set"}</span>
+      </div>
+
+      <form id="security-pwd-form" novalidate style="display:flex;flex-direction:column;gap:14px;">
+        <div class="field">
+          <label class="field__label" for="security-new-pwd">${hasPassword ? "New password" : "Create password"}</label>
+          <input class="input" id="security-new-pwd" type="password" placeholder="At least 6 characters" minlength="6" autocomplete="new-password" required />
+          <p class="field__error" id="security-pwd-err" hidden></p>
+        </div>
+        <div class="field">
+          <label class="field__label" for="security-confirm-pwd">Confirm password</label>
+          <input class="input" id="security-confirm-pwd" type="password" placeholder="Repeat your password" minlength="6" autocomplete="new-password" required />
+          <p class="field__error" id="security-confirm-err" hidden></p>
+        </div>
+        <button class="btn btn--primary btn--block" type="submit" id="btn-save-security-pwd">
+          ${hasPassword ? "Update password" : "Set password & enable email login"}
+        </button>
+      </form>
+
+      <div class="sheet-divider"><span>OR VIA EMAIL</span></div>
+
+      <div>
+        <p class="field__hint" style="margin:0 0 10px 0;line-height:1.45;">Prefer not to type a password here? Firebase can email a secure reset link to ${escapeHtml(activeUser.email)}.</p>
+        <button class="btn btn--soft btn--block" type="button" id="btn-send-security-reset">
+          ${icon("mail")} Send reset link to email
+        </button>
+      </div>
+    </div>`,
+    onMount(sheet, close) {
+      const sendResetBtn = sheet.querySelector("#btn-send-security-reset");
+      sendResetBtn?.addEventListener("click", async () => {
+        setButtonLoading(sendResetBtn, true, "Sending link");
+        try {
+          await sendPasswordResetEmail(auth, activeUser.email);
+          toast(`Password reset link sent to ${activeUser.email}. Check your inbox!`, { type: "success" });
+          close();
+        } catch (err) {
+          setButtonLoading(sendResetBtn, false);
+          toast(friendlyAuthError(err) || "Could not send reset email.", { type: "error" });
+        }
+      });
+
+      const form = sheet.querySelector("#security-pwd-form");
+      const pwdInput = form.querySelector("#security-new-pwd");
+      const confirmInput = form.querySelector("#security-confirm-pwd");
+      const pwdErr = form.querySelector("#security-pwd-err");
+      const confirmErr = form.querySelector("#security-confirm-err");
+      const submitBtn = form.querySelector("#btn-save-security-pwd");
+
+      form?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const pwd = pwdInput.value;
+        const confirm = confirmInput.value;
+        let valid = true;
+
+        if (pwd.length < 6) {
+          pwdErr.textContent = "Password must be at least 6 characters.";
+          pwdErr.hidden = false;
+          valid = false;
+        } else {
+          pwdErr.hidden = true;
+        }
+
+        if (pwd !== confirm) {
+          confirmErr.textContent = "Passwords do not match.";
+          confirmErr.hidden = false;
+          valid = false;
+        } else {
+          confirmErr.hidden = true;
+        }
+
+        if (!valid) return;
+
+        setButtonLoading(submitBtn, true, hasPassword ? "Updating" : "Setting password");
+        try {
+          await setOrUpdatePassword(activeUser, pwd);
+          toast(
+            hasPassword
+              ? "Your password has been updated."
+              : "Password set! You can now log in using either Google or your email & password.",
+            { type: "success" }
+          );
+          close();
+          onDone?.();
+        } catch (err) {
+          setButtonLoading(submitBtn, false);
+          if (err?.code === "auth/requires-recent-login") {
+            pwdErr.textContent = "For security, Firebase requires a recent login. Please click 'Send password link' below to set it via email.";
+            pwdErr.hidden = false;
+          } else {
+            pwdErr.textContent = friendlyAuthError(err) || "Failed to set password.";
+            pwdErr.hidden = false;
+          }
+        }
+      });
+    },
+  });
+}
+
+export const openChangePasswordSheet = openSecuritySheet;
+
+export function maybePromptGooglePassword(user) {
+  if (!user || isEmailPasswordUser(user) || !isGoogleUser(user)) return;
+  const pending = sessionStorage.getItem("academix_google_login_notice") === "true";
+  if (!pending) return;
+  sessionStorage.removeItem("academix_google_login_notice");
+
+  toast("Signed in with Google. Set a password in Profile > Security to enable email login too.", {
+    type: "info",
+    duration: 10000,
+    actionLabel: "Set password",
+    onAction: () => {
+      openSecuritySheet(user, {
+        onDone: () => {
+          if (location.hash === "#/profile") {
+            window.dispatchEvent(new CustomEvent("profile-updated"));
+          }
+        },
       });
     },
   });

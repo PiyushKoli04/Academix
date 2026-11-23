@@ -1,7 +1,9 @@
 import { isFirebaseConfigured } from "./firebase.js";
 import {
+  checkAuthActionUrl,
   ensureUserDocument,
   getRedirectError,
+  maybePromptGooglePassword,
   needsEmailVerification,
   observeAuth,
   renderAuthScreen,
@@ -63,6 +65,7 @@ if (!isFirebaseConfigured) {
 
 async function bootstrap() {
   pendingAuthMessage = await getRedirectError();
+  checkAuthActionUrl();
   observeAuth((user) => {
     handleAuthState(user).catch((error) => {
       console.error(error);
@@ -154,6 +157,7 @@ async function handleAuthState(user) {
     await renderRoute();
     maybeShowOnboarding();
     maybeShowInstallPrompt();
+    maybePromptGooglePassword(user);
   } catch (error) {
     if (sequence !== authSequence.value) return;
     console.error(error);
@@ -677,6 +681,28 @@ function setupGlobalListeners() {
   window.addEventListener("appinstalled", () => {
     state.deferredInstallPrompt = null;
     toast("Academix was added to your home screen.", { type: "success" });
+  });
+
+  window.addEventListener("profile-updated", () => {
+    if (location.hash === "#/profile") renderRoute();
+  });
+
+  document.addEventListener("click", (event) => {
+    const link = event.target.closest('a[href="#/home"], a[href="#/"]');
+    if (link && (location.hash === "#/home" || location.hash === "#/" || !location.hash)) {
+      const homeInput = document.getElementById("home-search-input");
+      const homeResults = document.getElementById("home-search-results");
+      const homeClear = document.getElementById("home-search-clear");
+      if (homeInput && (homeInput.value || (homeResults && !homeResults.hidden))) {
+        homeInput.value = "";
+        if (homeResults) {
+          homeResults.hidden = true;
+          homeResults.innerHTML = "";
+        }
+        if (homeClear) homeClear.hidden = true;
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   });
 
   window.addEventListener("online", () => {
