@@ -62,7 +62,10 @@ export async function renderLibrary(root, context = {}) {
   const activeBranch = state.branches.find((branch) => branch.id === branchId);
   const activeYear = state.years.find((item) => item.id === current.yearId);
 
-  setPageMeta("Library", "Browse every subject by year, semester, and branch.");
+  setPageMeta(
+    "Engineering Notes Library — Browse Semester-Wise Study Material & PYQs",
+    "Browse unit-wise engineering notes, previous year question papers (PYQs), formula sheets, and study materials sorted by academic year, semester, and branch across all engineering streams."
+  );
 
   if (!state.years.length) {
     root.innerHTML = `<div class="page page--compact">

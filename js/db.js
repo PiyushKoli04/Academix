@@ -24,6 +24,7 @@ import {
   writeBatch,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { isValidDriveId } from "./drive.js";
+import { triggerSeoBuild } from "./services/seoTrigger.js";
 
 const CACHE_TTL = 60_000;
 const LONG_CACHE_TTL = 5 * 60_000;
@@ -564,6 +565,7 @@ export async function saveSubject(subjectId, data) {
   invalidateCache("subjects");
   invalidateCache("documents");
   invalidateCache("dashboard");
+  triggerSeoBuild("subject_saved", { subjectId });
   return subjectId;
 }
 
@@ -584,6 +586,7 @@ export async function deleteSubjectCascade(subjectId) {
   await Promise.all([deleteQueryDocs(documentsSnapshot), deleteQueryDocs(activitySnapshot)]);
   await deleteDoc(doc(db, "subjects", subjectId));
   invalidateCatalog();
+  triggerSeoBuild("subject_deleted", { subjectId });
 }
 
 export async function deleteSubjectsForSemester(yearId, semester) {
@@ -705,6 +708,7 @@ export async function saveDocument(documentId, data, actorUid) {
   invalidateCache("subjects");
   invalidateCache("activity");
   invalidateCache("dashboard");
+  triggerSeoBuild("document_saved", { documentId: documentRef.id, subjectId: payload.subjectId });
   return documentRef.id;
 }
 
@@ -733,6 +737,7 @@ export async function deleteDocument(document, actorUid) {
   invalidateCache("subjects");
   invalidateCache("activity");
   invalidateCache("dashboard");
+  triggerSeoBuild("document_deleted", { documentId: document.id, subjectId: document.subjectId });
 }
 
 export async function saveContributor(contributorId, data) {

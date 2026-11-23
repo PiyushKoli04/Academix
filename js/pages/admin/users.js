@@ -1,4 +1,10 @@
-import { fetchUsersPage, updateUserBlocked, updateUserRole } from "../../db.js";
+import {
+  fetchBranches,
+  fetchUsersPage,
+  fetchYears,
+  updateUserBlocked,
+  updateUserRole,
+} from "../../db.js";
 import {
   avatarHTML,
   confirmDialog,
@@ -18,12 +24,26 @@ export async function renderUsers(main, context) {
   let hasMore = false;
   let loading = false;
   let query = "";
+  let selectedYear = "all";
+  let selectedBranch = "all";
+
+  if (!context.state.years?.length || !context.state.branches?.length) {
+    const [yearsData, branchesData] = await Promise.all([
+      fetchYears().catch(() => []),
+      fetchBranches().catch(() => []),
+    ]);
+    if (yearsData.length) context.state.years = yearsData;
+    if (branchesData.length) context.state.branches = branchesData;
+  }
 
   const firstPage = await fetchUsersPage({ pageSize });
   if (!location.hash.startsWith("#/admin/users")) return;
   users = firstPage.users;
   lastDoc = firstPage.lastDoc;
   hasMore = firstPage.hasMore;
+
+  const years = context.state.years || [];
+  const branches = context.state.branches || [];
 
   main.innerHTML = `${adminPageOpen("users")}
     ${adminHeaderHTML({
@@ -33,8 +53,16 @@ export async function renderUsers(main, context) {
     <div class="admin-toolbar">
       <label class="admin-toolbar__search">
         ${icon("search")}
-        <input class="input" type="search" placeholder="Search loaded accounts" data-user-search autocomplete="off" />
+        <input class="input" type="search" placeholder="Search name or email…" data-user-search autocomplete="off" />
       </label>
+      <select class="input select" data-filter-year aria-label="Filter by academic year">
+        <option value="all">All years</option>
+        ${years.map((y) => `<option value="${escapeAttr(y.id)}">${escapeHtml(y.name)}</option>`).join("")}
+      </select>
+      <select class="input select" data-filter-branch aria-label="Filter by branch">
+        <option value="all">All branches</option>
+        ${branches.map((b) => `<option value="${escapeAttr(b.id)}">${escapeHtml(b.shortName ? `${b.shortName} · ${b.name}` : b.name)}</option>`).join("")}
+      </select>
       <span class="status-chip" data-user-count>${users.length} loaded</span>
     </div>
     <div class="admin-list-grid" data-user-list></div>
@@ -44,26 +72,47 @@ export async function renderUsers(main, context) {
   const list = main.querySelector("[data-user-list]");
   const pagination = main.querySelector("[data-user-pagination]");
   const searchInput = main.querySelector("[data-user-search]");
+  const yearFilter = main.querySelector("[data-filter-year]");
+  const branchFilter = main.querySelector("[data-filter-branch]");
   const countChip = main.querySelector("[data-user-count]");
 
   function filteredUsers() {
     const needle = query.trim().toLowerCase();
-    if (!needle) return users;
-    return users.filter((user) => [user.name, user.displayName, user.email, user.role]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase()
-      .includes(needle));
+    return users.filter((user) => {
+      if (selectedYear !== "all" && user.yearId !== selectedYear) return false;
+      if (selectedBranch !== "all" && user.branchId !== selectedBranch) return false;
+      if (!needle) return true;
+      return [user.name, user.displayName, user.email, user.role]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(needle);
+    });
   }
 
   function renderList() {
     const visible = filteredUsers();
-    if (countChip) countChip.textContent = `${users.length} loaded`;
+    const isFiltered = selectedYear !== "all" || selectedBranch !== "all" || Boolean(query.trim());
+    if (countChip) {
+      countChip.textContent = isFiltered ? `${visible.length} of ${users.length} accounts` : `${users.length} loaded`;
+    }
     if (!visible.length) {
       list.innerHTML = adminEmptyHTML({
         iconName: users.length ? "search" : "users",
         title: users.length ? "No matching accounts" : "No accounts yet",
-        text: users.length ? "Try a different name or email." : "Students appear here after their first sign-in.",
+        text: isFiltered
+          ? "No accounts match the selected year, branch, or search query."
+          : "Students appear here after their first sign-in.",
+        actions: isFiltered ? `<button class="btn btn--white btn--sm" type="button" data-clear-user-filters>Clear filters</button>` : "",
+      });
+      list.querySelector("[data-clear-user-filters]")?.addEventListener("click", () => {
+        selectedYear = "all";
+        selectedBranch = "all";
+        query = "";
+        if (yearFilter) yearFilter.value = "all";
+        if (branchFilter) branchFilter.value = "all";
+        if (searchInput) searchInput.value = "";
+        renderList();
       });
       renderPagination();
       return;
@@ -163,6 +212,16 @@ export async function renderUsers(main, context) {
 
   searchInput?.addEventListener("input", () => {
     query = searchInput.value;
+    renderList();
+  });
+
+  yearFilter?.addEventListener("change", () => {
+    selectedYear = yearFilter.value;
+    renderList();
+  });
+
+  branchFilter?.addEventListener("change", () => {
+    selectedBranch = branchFilter.value;
     renderList();
   });
 

@@ -665,11 +665,24 @@ export function adStripHTML(ad) {
   return adCardHTML(ad, "strip");
 }
 
-export function setPageMeta(title, description) {
-  document.title = title ? `${title} · Academix` : "Academix — Your Notes. One Place.";
+export function setPageMeta(title, description, options = {}) {
+  const fullTitle = title ? `${title} · Academix — Engineering Notes & Study Material` : "Academix — Free Engineering Notes, Study Material & College Notes PDF";
+  document.title = fullTitle;
   if (description) {
-    const tag = document.querySelector('meta[name="description"]');
-    if (tag) tag.setAttribute("content", description);
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) metaDesc.setAttribute("content", description);
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) ogDesc.setAttribute("content", description);
+    const twDesc = document.querySelector('meta[name="twitter:description"]');
+    if (twDesc) twDesc.setAttribute("content", description);
+  }
+  const ogTitle = document.querySelector('meta[property="og:title"]');
+  if (ogTitle) ogTitle.setAttribute("content", fullTitle);
+  const twTitle = document.querySelector('meta[name="twitter:title"]');
+  if (twTitle) twTitle.setAttribute("content", fullTitle);
+  if (options.canonical) {
+    const canonical = document.querySelector('link[rel="canonical"]');
+    if (canonical) canonical.setAttribute("href", options.canonical);
   }
 }
 

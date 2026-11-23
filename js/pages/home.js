@@ -68,7 +68,10 @@ export async function renderHome(root) {
   const lastView = state.lastView;
   const continueEntry = lastView?.docId ? lastView : recents.find((entry) => entry?.docId) || lastView || null;
 
-  setPageMeta("Home", "Your semester notes, sorted by year, semester, and branch.");
+  setPageMeta(
+    "Free Engineering Notes & Study Material",
+    "Academix provides verified engineering notes PDFs, previous year question papers (PYQs), and module study guides organized by year, semester, and branch."
+  );
 
   const [allSubjects, ads] = await Promise.all([
     fetchSubjectsFor(selection.yearId, selection.semester),

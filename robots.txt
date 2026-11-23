@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Allow: /notes/
+Disallow: /app/
+Disallow: /android/
+
+Sitemap: https://academix.syntaxsyndicate.co.in/sitemap.xml

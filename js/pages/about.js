@@ -35,7 +35,10 @@ export function renderAbout(root) {
   const version = settings.version || "1.0.0";
   const contributors = Array.isArray(state.contributors) ? state.contributors : [];
 
-  setPageMeta("About", "How Academix works, who made it, and how to get in touch.");
+  setPageMeta(
+    "About Academix — Engineering Notes Platform & Contributor Credits",
+    "Learn about Academix, how our view-only engineering notes library works, our contributors, and our personal study mission."
+  );
 
   root.innerHTML = `<div class="page page--compact">
     <div class="about-shell">

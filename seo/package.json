@@ -1,0 +1,16 @@
+{
+  "name": "academix-seo-generator",
+  "version": "1.0.0",
+  "description": "Static SEO page generator for Academix",
+  "main": "generate.js",
+  "scripts": {
+    "generate": "node generate.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "private": true
+}

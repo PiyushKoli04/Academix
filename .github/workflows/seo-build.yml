@@ -1,0 +1,84 @@
+name: SEO Build & Sitemap Synchronization
+
+on:
+  # Daily scheduled backup synchronization at 02:00 UTC
+  schedule:
+    - cron: "0 2 * * *"
+
+  # Manual execution from GitHub Actions dashboard
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for manual SEO rebuild"
+        required: false
+        default: "Manual administrator trigger"
+
+  # Event-triggered execution when academic content changes in Firestore
+  repository_dispatch:
+    types:
+      - seo-update
+
+# Prevent concurrent deployments from conflicting
+concurrency:
+  group: seo-deploy
+  cancel-in-progress: true
+
+jobs:
+  build-and-sync-seo:
+    name: Generate Static SEO Pages & Sitemap
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache-dependency-path: seo/package.json
+
+      - name: Install Generator Dependencies
+        run: |
+          cd seo
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Run Programmatic SEO Generator
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          node seo/generate.js
+
+      - name: Run SEO Quality & Schema Validation
+        run: |
+          node seo/validate.js
+
+      - name: Detect Changes in SEO Artifacts
+        id: git_status
+        run: |
+          git status --porcelain notes/ sitemap.xml robots.txt
+          if [ -n "$(git status --porcelain notes/ sitemap.xml robots.txt)" ]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            echo "Changes detected in generated SEO artifacts."
+          else
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "No changes detected. Skipping commit."
+          fi
+
+      - name: Commit and Publish Generated SEO Pages
+        if: steps.git_status.outputs.has_changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add notes/ sitemap.xml robots.txt
+          git commit -m "chore(seo): automated sitemap and static pages synchronization [skip ci]"
+          git push
+

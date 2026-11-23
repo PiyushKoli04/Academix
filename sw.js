@@ -1,4 +1,4 @@
-const CACHE_VERSION = "academix-v9";
+const CACHE_VERSION = "academix-v10";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const FONT_CACHE = `${CACHE_VERSION}-fonts`;
 
@@ -22,6 +22,7 @@ const APP_SHELL = [
   "./js/db.js",
   "./js/seed.js",
   "./js/services/driveUpload.js",
+  "./js/services/seoTrigger.js",
   "./js/pages/home.js",
   "./js/pages/library.js",
   "./js/pages/subject.js",
