@@ -30,7 +30,7 @@ const path = require('path');
 // ---------------------------------------------------------------------------
 
 const DOMAIN = 'https://academix.syntaxsyndicate.co.in';
-const OG_IMAGE = `${DOMAIN}/icons/og-image.png`;
+const OG_IMAGE = `${DOMAIN}/icons/og.png?v=2`;
 const ROOT_DIR = path.resolve(__dirname, '..');
 const NOTES_DIR = path.join(ROOT_DIR, 'notes');
 
