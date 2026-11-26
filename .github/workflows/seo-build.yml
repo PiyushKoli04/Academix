@@ -1,7 +1,7 @@
 name: SEO Build & Sitemap Synchronization
 
 on:
-  # Daily scheduled backup synchronization at 02:00 UTC
+  # Daily scheduled synchronization at 02:00 UTC
   schedule:
     - cron: "0 2 * * *"
 
@@ -18,6 +18,13 @@ on:
     types:
       - seo-update
 
+  # Also rebuild when generator template or exported catalog snapshot is pushed
+  push:
+    branches: [main, master]
+    paths:
+      - "seo/catalog.json"
+      - "seo/generate.js"
+
 # Prevent concurrent deployments from conflicting
 concurrency:
   group: seo-deploy
@@ -25,7 +32,7 @@ concurrency:
 
 jobs:
   build-and-sync-seo:
-    name: Generate Static SEO Pages & Sitemap
+    name: Generate Live SEO Pages & Sitemap
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -51,15 +58,28 @@ jobs:
             npm install
           fi
 
-      - name: Run Programmatic SEO Generator
+      - name: Verify Live Data Source Is Configured
+        env:
+          HAS_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+          HAS_AUTH: ${{ secrets.FIREBASE_SEO_EMAIL != '' && secrets.FIREBASE_SEO_PASSWORD != '' }}
+        run: |
+          if [ "$HAS_SA" != "true" ] && [ "$HAS_AUTH" != "true" ] && [ ! -f "seo/catalog.json" ]; then
+            echo "::error::No live Firestore credentials configured (FIREBASE_SERVICE_ACCOUNT or FIREBASE_SEO_EMAIL/FIREBASE_SEO_PASSWORD) and no seo/catalog.json found."
+            echo "Add FIREBASE_SERVICE_ACCOUNT (recommended) or FIREBASE_SEO_EMAIL + FIREBASE_SEO_PASSWORD to GitHub Repository Secrets."
+            exit 1
+          fi
+
+      - name: Run Live Programmatic SEO Generator
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_SEO_EMAIL: ${{ secrets.FIREBASE_SEO_EMAIL }}
+          FIREBASE_SEO_PASSWORD: ${{ secrets.FIREBASE_SEO_PASSWORD }}
         run: |
           node seo/generate.js
 
       - name: Run SEO Quality & Schema Validation
         run: |
-          node seo/validate.js
+          node seo/validate.js --require-subjects
 
       - name: Detect Changes in SEO Artifacts
         id: git_status
@@ -79,6 +99,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add notes/ sitemap.xml robots.txt
-          git commit -m "chore(seo): automated sitemap and static pages synchronization [skip ci]"
+          git commit -m "chore(seo): sync live Firestore subject pages and sitemap [skip ci]"
           git push
-

@@ -1,7 +1,13 @@
+# Academix — Engineering Notes Library
+# https://academix.syntaxsyndicate.co.in
+
 User-agent: *
 Allow: /
 Allow: /notes/
+
+# Private/internal directories
 Disallow: /app/
 Disallow: /android/
 
+# Sitemap
 Sitemap: https://academix.syntaxsyndicate.co.in/sitemap.xml

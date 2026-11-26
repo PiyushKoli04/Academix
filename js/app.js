@@ -49,10 +49,24 @@ import { renderUsers } from "./pages/admin/users.js";
 const root = document.getElementById("app");
 const authSequence = { value: 0 };
 const routeState = { sequence: 0, cleanup: null };
+const REDIRECT_STORAGE_KEY = "academix_redirect_target";
 let settingsUnsubscribe = null;
 let onboardingShown = false;
 let pendingAuthMessage = "";
 
+function isDeepLinkHash(hash) {
+  return Boolean(hash && hash.startsWith("#/") && !["#/", "#/home", "#/login", "#/auth"].includes(hash));
+}
+
+function captureRedirectTarget() {
+  if (isDeepLinkHash(location.hash)) {
+    try {
+      sessionStorage.setItem(REDIRECT_STORAGE_KEY, location.hash);
+    } catch { }
+  }
+}
+
+captureRedirectTarget();
 initTheme();
 setupGlobalListeners();
 registerServiceWorker();
@@ -64,6 +78,7 @@ if (!isFirebaseConfigured) {
 }
 
 async function bootstrap() {
+  captureRedirectTarget();
   pendingAuthMessage = await getRedirectError();
   checkAuthActionUrl();
   observeAuth((user) => {
@@ -84,6 +99,7 @@ async function handleAuthState(user) {
   closeAllOverlays();
 
   if (!user) {
+    captureRedirectTarget();
     clearUserState();
     state.authResolved = true;
     onboardingShown = false;
@@ -153,7 +169,17 @@ async function handleAuthState(user) {
       pendingAuthMessage = "";
     }
 
-    if (!location.hash) history.replaceState(null, "", "#/home");
+    let redirectTarget = "";
+    try {
+      redirectTarget = sessionStorage.getItem(REDIRECT_STORAGE_KEY) || "";
+      if (redirectTarget) sessionStorage.removeItem(REDIRECT_STORAGE_KEY);
+    } catch { }
+
+    if (isDeepLinkHash(redirectTarget) && !isDeepLinkHash(location.hash)) {
+      history.replaceState(null, "", redirectTarget);
+    } else if (!location.hash || ["#/", "#/login", "#/auth"].includes(location.hash)) {
+      history.replaceState(null, "", "#/home");
+    }
     await renderRoute();
     maybeShowOnboarding();
     maybeShowInstallPrompt();
@@ -657,6 +683,7 @@ function setupGlobalListeners() {
 
   window.addEventListener("hashchange", () => {
     if (state.user && state.profile) renderRoute();
+    else captureRedirectTarget();
   });
 
   document.addEventListener("click", (event) => {

@@ -205,39 +205,40 @@ The SEO trigger is connected directly to Firestore data mutations in `js/db.js`:
 - `deleteDocument()` → triggers `triggerSeoBuild("document_deleted", { documentId, subjectId })`
 
 ### Webhook Dispatch Mechanism (`js/services/seoTrigger.js`)
-- Includes an internal 3-second debounce to prevent multiple rapid triggers when batch saving content.
-- If `githubDispatchToken` is configured in Firestore `settings/app`, it dispatches an authenticated HTTP POST to `https://api.github.com/repos/piyushkoli04/academix/dispatches`.
-- If no token is configured, it cleanly falls back to the daily scheduled cron without throwing errors or interrupting administrative workflows.
+- Includes a 3-second debounce to prevent rapid multiple triggers when batch saving content.
+- **Security Guarantee:** Never stores or reads GitHub tokens in Firestore `settings/app` (since student accounts have read permission on `settings/app`).
+- Supports either a verified webhook endpoint (`settings.seoWebhookUrl` receiving the Firebase ID token) or a device-local fine-grained GitHub PAT saved only in the administrator's own browser storage via the **Admin Dashboard → Google SEO & Sitemap** sheet.
+- Also provides a one-click **"Export catalog.json"** button in the Admin Dashboard to snapshot live Firestore subjects, branches, and public document metadata cleanly.
 
 ---
 
-## 9. Required GitHub Secrets Configuration
+## 9. Required GitHub Secrets Configuration (Live Firestore Sync)
 
-To connect live Firestore data to the automated GitHub Actions pipeline, configure the following repository secret:
+To generate static HTML pages for your **real Firestore subjects** (never hardcoded demo subjects), configure **one** of these in **GitHub Repository Settings → Secrets and variables → Actions**:
 
-| Secret Name | Description | How to Obtain |
+| Option | Secret Name(s) | How to Obtain / Set Up |
 | :--- | :--- | :--- |
-| `FIREBASE_SERVICE_ACCOUNT` | JSON key for Firebase Admin SDK | 1. Open [Firebase Console](https://console.firebase.google.com/)<br>2. Go to **Project Settings** → **Service Accounts**<br>3. Click **Generate New Private Key**<br>4. Copy the entire JSON content<br>5. In GitHub repo, go to **Settings** → **Secrets and variables** → **Actions**<br>6. Create secret named `FIREBASE_SERVICE_ACCOUNT` and paste JSON |
-
-*(Note: The generator includes a verified academic catalog seed fallback, allowing local development and testing to run 100% offline without live credentials).*
+| **Option A (Recommended)** | `FIREBASE_SERVICE_ACCOUNT` | Firebase Console → **Project Settings** → **Service Accounts** → **Generate New Private Key** → paste entire JSON string |
+| **Option B (No Service Account JSON)** | `FIREBASE_SEO_EMAIL` and `FIREBASE_SEO_PASSWORD` | Dedicated Firebase Auth email + password account allowed to read catalog collections under `firestore.rules` |
+| **Option C (Admin Export)** | *(No secret required)* | Open **Admin Dashboard → Google SEO & Sitemap → Export catalog.json**, save to `seo/catalog.json`, and commit — GitHub Actions rebuilds automatically on push |
 
 ---
 
 ## 10. How to Run Locally
 
-You can test and generate SEO pages locally at any time:
-
 ```bash
-# 1. Navigate to the SEO directory
+# Option 1: Using a live Firebase Service Account JSON
 cd seo
-
-# 2. Run the generator (operates in fallback mode if no credentials are provided)
-node generate.js
-
-# 3. Or run with your Firebase Service Account JSON
+npm install
 FIREBASE_SERVICE_ACCOUNT='{"type":"service_account",...}' node generate.js
 
-# 4. Run the automated SEO quality test suite
+# Option 2: Using Firebase Auth user credentials (REST API)
+FIREBASE_SEO_EMAIL="you@example.com" FIREBASE_SEO_PASSWORD="your-password" node generate.js
+
+# Option 3: Using an exported Admin snapshot
+node generate.js --input path/to/catalog.json
+
+# Verify all generated HTML, UI styles, JSON-LD, robots.txt & sitemap.xml
 node validate.js
 ```
 

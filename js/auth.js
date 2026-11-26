@@ -90,7 +90,7 @@ export async function ensureUserDocument(user) {
     };
     try {
       await setDoc(ref, payload);
-      return { ...payload, createdAt: new Date(), lastLogin: new Date() };
+      return { uid: user.uid, ...payload, createdAt: new Date(), lastLogin: new Date() };
     } catch (error) {
       if (error?.code === "already-exists") {
         const retry = await getDoc(ref);
@@ -119,13 +119,17 @@ export async function signOutUser() {
 }
 
 export async function updateOwnProfile(uid, patch) {
+  const userId = uid || auth?.currentUser?.uid || state.user?.uid || state.profile?.uid;
+  if (!userId) throw new Error("You must be signed in to update your profile.");
   const allowed = {};
   if (typeof patch.name === "string") allowed.name = patch.name.trim().slice(0, 100);
   if (typeof patch.photoURL === "string") allowed.photoURL = patch.photoURL.trim().slice(0, 2048);
   if (typeof patch.branchId === "string") allowed.branchId = patch.branchId.slice(0, 100);
   if (typeof patch.yearId === "string") allowed.yearId = patch.yearId.slice(0, 100);
+  if (typeof patch.termsAccepted === "boolean") allowed.termsAccepted = patch.termsAccepted;
+  if (typeof patch.termsAcceptedAt === "string") allowed.termsAcceptedAt = patch.termsAcceptedAt;
   if (!Object.keys(allowed).length) return;
-  await updateDoc(userRef(uid), allowed);
+  await updateDoc(userRef(userId), allowed);
   if (auth.currentUser && allowed.name) {
     updateProfile(auth.currentUser, { displayName: allowed.name }).catch(() => {});
   }

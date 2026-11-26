@@ -1,4 +1,6 @@
 import {
+  fetchAllDocuments,
+  fetchAllSubjects,
   fetchBranches,
   fetchContributors,
   fetchDashboardData,
@@ -7,6 +9,11 @@ import {
   fetchYears,
   saveSettings,
 } from "../../db.js";
+import {
+  dispatchSeoRebuildNow,
+  getLocalAdminGhToken,
+  setLocalAdminGhToken,
+} from "../../services/seoTrigger.js";
 import { escapeAttr, escapeHtml, formatNumber, icon, openSheet, relativeTime, setButtonLoading, toast } from "../../ui.js";
 import { adminHeaderHTML, adminPageClose, adminPageOpen } from "./shared.js";
 
@@ -124,6 +131,17 @@ export async function renderDashboard(main, context) {
           </div>
         </section>
 
+        <section class="admin-card">
+          <div class="admin-card__head">
+            <div><h2 class="admin-card__title">Google SEO &amp; Sitemap</h2><p class="admin-card__sub">Keep static notes pages &amp; sitemap.xml synced with live subjects.</p></div>
+            <a class="admin-card__action" href="./notes/" target="_blank" rel="noopener">Open catalog ${icon("external-link", "icon--xs")}</a>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+            <button class="btn btn--primary btn--sm" type="button" data-seo-sync-open>${icon("sparkles", "icon--xs")} Manage SEO sync</button>
+            <button class="btn btn--white btn--sm" type="button" data-seo-export>${icon("download", "icon--xs")} Export catalog.json</button>
+          </div>
+        </section>
+
         <section class="admin-card" data-seed-card style="display:none">
           <div class="admin-card__head">
             <div><h2 class="admin-card__title">Start with demo content</h2><p class="admin-card__sub">Add sample years, branches, subjects, and contributors you can edit or delete.</p></div>
@@ -157,6 +175,21 @@ export async function renderDashboard(main, context) {
 
   main.querySelectorAll("[data-edit-settings]").forEach((button) => {
     button.addEventListener("click", () => openSettingsSheet(context, main));
+  });
+
+  main.querySelector("[data-seo-sync-open]")?.addEventListener("click", () => openSeoSyncSheet());
+
+  main.querySelector("[data-seo-export]")?.addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    setButtonLoading(button, true, "Exporting");
+    try {
+      await downloadCatalogJson();
+      toast("Downloaded catalog.json. Place in seo/catalog.json and run SEO generator.", { type: "success", duration: 6000 });
+    } catch (error) {
+      toast(error?.message || "Catalog export failed.", { type: "error" });
+    } finally {
+      setButtonLoading(button, false);
+    }
   });
 
   main.querySelector("[data-seed-demo]")?.addEventListener("click", async (event) => {
@@ -336,4 +369,140 @@ function openSettingsSheet(context, main) {
     },
   });
   return sheet;
+}
+
+function toIsoStringSafe(ts) {
+  if (!ts) return null;
+  if (typeof ts.toDate === "function") return ts.toDate().toISOString();
+  if (typeof ts._seconds === "number") return new Date(ts._seconds * 1000).toISOString();
+  const d = new Date(ts);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+async function downloadCatalogJson() {
+  const [years, branches, subjects, documents, contributors] = await Promise.all([
+    fetchYears(),
+    fetchBranches(),
+    fetchAllSubjects(),
+    fetchAllDocuments(1000),
+    fetchContributors().catch(() => []),
+  ]);
+
+  // Export ONLY public-safe catalog metadata (no user PII, no Drive file IDs)
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    years: years.map((y) => ({ id: y.id, name: y.name, order: y.order || 0, semesters: y.semesters || [] })),
+    branches: branches.map((b) => ({
+      id: b.id,
+      name: b.name,
+      shortName: b.shortName || "",
+      color: b.color || "",
+      order: b.order || 0,
+    })),
+    subjects: subjects.map((s) => ({
+      id: s.id,
+      name: s.name || "",
+      code: s.code || "",
+      yearId: s.yearId || "",
+      semester: s.semester || 0,
+      branchIds: Array.isArray(s.branchIds) ? s.branchIds : [],
+      description: s.description || "",
+      color: s.color || "",
+      modules: Array.isArray(s.modules) ? s.modules : [],
+      order: s.order || 0,
+      createdAt: toIsoStringSafe(s.createdAt),
+      updatedAt: toIsoStringSafe(s.updatedAt),
+    })),
+    documents: documents.map((d) => ({
+      id: d.id,
+      title: d.title || "",
+      subjectId: d.subjectId || "",
+      type: d.type || "other",
+      isMain: Boolean(d.isMain),
+      pages: Number(d.pages) || 0,
+      sizeLabel: d.sizeLabel || "",
+      description: d.description || "",
+      createdAt: toIsoStringSafe(d.createdAt),
+      updatedAt: toIsoStringSafe(d.updatedAt),
+    })),
+    contributors: contributors.map((c) => ({
+      id: c.id,
+      name: c.name || "",
+      role: c.role || "",
+      uploadsCount: Number(c.uploadsCount) || 0,
+    })),
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "catalog.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function openSeoSyncSheet() {
+  const existingToken = getLocalAdminGhToken();
+  return openSheet({
+    title: "Google SEO & Sitemap Sync",
+    subtitle: "Keep /notes/ static pages and sitemap.xml updated with your live Firestore subjects.",
+    size: "wide",
+    content: `<div class="admin-editor">
+      <div class="admin-editor__section">
+        <p style="font-size:12.5px;color:var(--text-secondary);line-height:1.55">
+          Because Firestore protects student collections behind Firebase Auth, Google crawls static pages in <strong>/notes/</strong> and <strong>sitemap.xml</strong> generated from your live subjects.
+        </p>
+        <div class="notice">
+          <strong>Recommended setup:</strong> Add <code>FIREBASE_SERVICE_ACCOUNT</code> (or <code>FIREBASE_SEO_EMAIL</code> + <code>FIREBASE_SEO_PASSWORD</code>) to GitHub Repository Secrets so GitHub Actions syncs automatically.
+        </div>
+        <label class="field">
+          <span class="field__label">GitHub Fine-Grained Token (stored locally on this browser only)</span>
+          <input class="input" type="password" id="seo-gh-pat" value="${escapeAttr(existingToken)}" placeholder="github_pat_… (Contents: Write)" autocomplete="off" />
+        </label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn--white btn--sm" type="button" id="seo-save-pat">${icon("check", "icon--xs")} Save token locally</button>
+          <button class="btn btn--primary btn--sm" type="button" id="seo-dispatch-now">${icon("sparkles", "icon--xs")} Trigger GitHub SEO build</button>
+          <button class="btn btn--white btn--sm" type="button" id="seo-sheet-export">${icon("download", "icon--xs")} Download catalog.json</button>
+        </div>
+      </div>
+    </div>`,
+    footer: `<button class="btn btn--white" type="button" data-close-seo-sheet>Close</button>`,
+    onMount(sheetElement, close) {
+      sheetElement.querySelector("[data-close-seo-sheet]")?.addEventListener("click", () => close());
+      sheetElement.querySelector("#seo-save-pat")?.addEventListener("click", () => {
+        const val = sheetElement.querySelector("#seo-gh-pat")?.value || "";
+        setLocalAdminGhToken(val);
+        toast(val.trim() ? "Token saved locally in this browser." : "Local token cleared.", { type: "success" });
+      });
+      sheetElement.querySelector("#seo-dispatch-now")?.addEventListener("click", async (event) => {
+        const btn = event.currentTarget;
+        const val = sheetElement.querySelector("#seo-gh-pat")?.value || "";
+        if (val.trim()) setLocalAdminGhToken(val);
+        setButtonLoading(btn, true, "Triggering");
+        const result = await dispatchSeoRebuildNow("admin_dashboard_manual");
+        setButtonLoading(btn, false);
+        if (result.triggered) {
+          toast("GitHub Actions SEO build dispatched! Live pages will update shortly.", { type: "success" });
+          close();
+        } else {
+          toast("Configure a local GitHub PAT above or trigger the workflow from GitHub Actions.", { type: "info", duration: 5000 });
+        }
+      });
+      sheetElement.querySelector("#seo-sheet-export")?.addEventListener("click", async (event) => {
+        const btn = event.currentTarget;
+        setButtonLoading(btn, true, "Exporting");
+        try {
+          await downloadCatalogJson();
+          toast("Downloaded catalog.json.", { type: "success" });
+        } catch (error) {
+          toast(error?.message || "Export failed.", { type: "error" });
+        } finally {
+          setButtonLoading(btn, false);
+        }
+      });
+    },
+  });
 }
