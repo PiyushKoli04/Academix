@@ -1,10 +1,22 @@
 {
+  "id": "/",
   "name": "Academix — College Notes",
   "short_name": "Academix",
   "description": "A calm, view-only college notes library for every year, semester, and branch.",
   "start_url": "./#/home",
   "scope": "./",
   "display": "standalone",
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "prefer_related_applications": false,
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://academix.syntaxsyndicate.co.in/manifest.json"
+    }
+  ],
   "orientation": "portrait-primary",
   "background_color": "#F4F3F5",
   "theme_color": "#F4F3F5",

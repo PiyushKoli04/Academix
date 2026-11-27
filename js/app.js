@@ -72,6 +72,17 @@ captureRedirectTarget();
 if (location.hash === "#/install-app") {
   window.location.replace("./install-app/");
 }
+if ("launchQueue" in window) {
+  window.launchQueue.setConsumer((launchParams) => {
+    if (!launchParams?.targetURL) return;
+    try {
+      const target = new URL(launchParams.targetURL);
+      if (target.hash && isDeepLinkHash(target.hash) && location.hash !== target.hash) {
+        location.hash = target.hash;
+      }
+    } catch { }
+  });
+}
 initTheme();
 setupGlobalListeners();
 registerServiceWorker();
