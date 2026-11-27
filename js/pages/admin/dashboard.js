@@ -67,6 +67,10 @@ export async function renderDashboard(main, context) {
               <span class="admin-quick__icon">${icon("upload")}</span>
               <span class="admin-quick__label">Upload notes</span>
             </a>
+            <a class="admin-quick" href="#/admin/contributions">
+              <span class="admin-quick__icon">${icon("inbox")}</span>
+              <span class="admin-quick__label" data-pending-quick-label>Review notes</span>
+            </a>
             <a class="admin-quick" href="#/admin/contributors">
               <span class="admin-quick__icon">${icon("users")}</span>
               <span class="admin-quick__label">Contributors</span>
@@ -236,10 +240,14 @@ export async function renderDashboard(main, context) {
     const statSubjects = main.querySelector('[data-stat="subjects"]');
     const statDocuments = main.querySelector('[data-stat="documents"]');
     const statContributors = main.querySelector('[data-stat="contributors"]');
+    const pendingQuickLabel = main.querySelector('[data-pending-quick-label]');
     if (statUsers) statUsers.textContent = formatNumber(dashboard.totalUsers);
     if (statSubjects) statSubjects.textContent = formatNumber(dashboard.totalSubjects);
     if (statDocuments) statDocuments.textContent = formatNumber(dashboard.totalDocuments);
     if (statContributors) statContributors.textContent = formatNumber(dashboard.totalContributors);
+    if (pendingQuickLabel && dashboard.pendingContributions > 0) {
+      pendingQuickLabel.textContent = `Review notes (${formatNumber(dashboard.pendingContributions)})`;
+    }
 
     // Update top subjects card
     const topCard = main.querySelector("[data-top-subjects-card]");

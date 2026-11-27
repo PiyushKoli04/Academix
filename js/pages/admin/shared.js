@@ -1,9 +1,11 @@
 import { escapeAttr, escapeHtml, icon, safeColor } from "../../ui.js";
+import { getPreviewUrl } from "../../drive.js";
 
 export const ADMIN_TABS = [
   { id: "dashboard", label: "Dashboard", icon: "dashboard" },
   { id: "structure", label: "Structure", icon: "folder-tree" },
   { id: "documents", label: "Documents", icon: "file-text" },
+  { id: "contributions", label: "Review", icon: "inbox" },
   { id: "contributors", label: "Contributors", icon: "users" },
   { id: "ads", label: "Ads", icon: "megaphone" },
   { id: "users", label: "Users", icon: "user-check" },
@@ -291,4 +293,34 @@ export function bindSubjectPickers(root, { subjects = [], years = [], branches =
       }
     });
   });
+}
+
+export function contributionStatusMeta(status) {
+  if (status === "approved") {
+    return { label: "Approved · In library", short: "Approved", chipClass: "status-chip--success" };
+  }
+  if (status === "rejected") {
+    return { label: "Rejected · Sent back to you", short: "Rejected", chipClass: "status-chip--danger" };
+  }
+  return { label: "Pending review", short: "Pending", chipClass: "status-chip--warning" };
+}
+
+export function drivePreviewFrameHTML(driveFileId, title = "PDF preview", contributionId = "") {
+  const previewUrl = getPreviewUrl(driveFileId);
+  if (!previewUrl) {
+    return `<div class="notice notice--danger">This contribution does not have a valid Google Drive file ID.</div>`;
+  }
+  const fullViewerHref = contributionId ? `#/viewer/${encodeURIComponent(contributionId)}?kind=contribution` : "";
+  return `<div class="review-preview">
+    <div class="review-preview__bar">
+      <span class="review-preview__label">${icon("eye", "icon--xs")} Live Drive PDF Preview (View-only)</span>
+      <div class="review-preview__links">
+        ${fullViewerHref ? `<a class="btn btn--white btn--xs" href="${fullViewerHref}">${icon("maximize", "icon--xs")} Full reader</a>` : ""}
+        <a class="btn btn--white btn--xs" href="${escapeAttr(previewUrl)}" target="_blank" rel="noopener noreferrer">${icon("external-link", "icon--xs")} Open in Drive</a>
+      </div>
+    </div>
+    <div class="review-preview__frame-wrap">
+      <iframe class="review-preview__frame" src="${escapeAttr(previewUrl)}" title="${escapeAttr(title)}" loading="eager" allow="autoplay; encrypted-media"></iframe>
+    </div>
+  </div>`;
 }

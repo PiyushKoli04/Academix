@@ -21,6 +21,11 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    function notBlocked() {
+      return signedIn()
+        && (!exists(userPath()) || get(userPath()).data.blocked != true);
+    }
+
     function onlyChanged(keys) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
     }
@@ -33,7 +38,7 @@ service cloud.firestore {
         && request.resource.data.blocked == false;
       allow update: if isAdmin()
         || (isOwner(userId)
-          && onlyChanged(['name', 'photoURL', 'yearId', 'branchId', 'bookmarks', 'recentlyViewed', 'completedModules', 'lastLogin', 'email', 'termsAccepted', 'termsAcceptedAt'])
+          && onlyChanged(['name', 'photoURL', 'yearId', 'branchId', 'bookmarks', 'recentlyViewed', 'completedModules', 'lastLogin', 'email', 'termsAccepted', 'termsAcceptedAt', 'contributorName', 'contributorLink'])
           && request.resource.data.role == resource.data.role
           && request.resource.data.blocked == resource.data.blocked);
       allow delete: if isAdmin();
@@ -71,6 +76,45 @@ service cloud.firestore {
     match /contributors/{contributorId} {
       allow read: if signedIn();
       allow write: if isAdmin();
+    }
+
+    match /contributions/{contributionId} {
+      allow get: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow list: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if notBlocked()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.subjectId is string
+        && request.resource.data.subjectId.size() > 0
+        && request.resource.data.driveFileId is string
+        && request.resource.data.driveFileId.size() >= 10
+        && request.resource.data.contributorName is string
+        && request.resource.data.contributorName.size() > 0
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && (!('approvedDocId' in request.resource.data) || request.resource.data.approvedDocId == '')
+        && (!('reviewedBy' in request.resource.data) || request.resource.data.reviewedBy == '');
+      allow update: if isAdmin()
+        || (notBlocked()
+          && resource.data.uid == request.auth.uid
+          && resource.data.status in ['pending', 'rejected']
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.status == 'pending'
+          && request.resource.data.subjectId is string
+          && request.resource.data.subjectId.size() > 0
+          && request.resource.data.driveFileId is string
+          && request.resource.data.driveFileId.size() >= 10
+          && request.resource.data.contributorName is string
+          && request.resource.data.contributorName.size() > 0
+          && request.resource.data.title is string
+          && request.resource.data.title.size() > 0
+          && (!('approvedDocId' in request.resource.data) || request.resource.data.approvedDocId == '')
+          && (!('reviewedBy' in request.resource.data) || request.resource.data.reviewedBy == '')
+          && (!('rejectionReason' in request.resource.data) || request.resource.data.rejectionReason == ''));
+      allow delete: if isAdmin()
+        || (notBlocked()
+          && resource.data.uid == request.auth.uid
+          && resource.data.status in ['pending', 'rejected']);
     }
 
     match /activity/{activityId} {

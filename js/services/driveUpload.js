@@ -256,7 +256,7 @@ function mapTokenError(raw) {
     return "Your browser blocked the Google Drive window. Allow pop-ups for Academix and try again.";
   }
   if (value.includes("access_denied") || value.includes("consent")) {
-    return "Drive access was not granted. Admin uploads need permission to manage files created by Academix.";
+    return "Drive access was not granted. Uploads need permission to manage files created by Academix.";
   }
   if (value.includes("interaction_required") || value.includes("login_required")) {
     return "Your Drive session needs attention. Click “Reconnect Drive” and approve access again.";
@@ -439,7 +439,33 @@ async function createFolder(name, parentId) {
   return data.id;
 }
 
-async function persistFolderCache(folders) {
+const LOCAL_CONTRIB_FOLDERS_PREFIX = "academix_contrib_drive_folders:";
+
+function readLocalFolderCache(ownerEmail) {
+  if (!ownerEmail) return {};
+  try {
+    const raw = localStorage.getItem(`${LOCAL_CONTRIB_FOLDERS_PREFIX}${ownerEmail}`);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeLocalFolderCache(ownerEmail, folders) {
+  if (!ownerEmail) return;
+  try {
+    localStorage.setItem(`${LOCAL_CONTRIB_FOLDERS_PREFIX}${ownerEmail}`, JSON.stringify(folders));
+  } catch {
+    // Ignore storage quota or private browsing errors.
+  }
+}
+
+async function persistFolderCache(folders, { cacheFoldersInSettings = true, ownerEmail = "" } = {}) {
+  if (!cacheFoldersInSettings) {
+    writeLocalFolderCache(ownerEmail, folders);
+    return;
+  }
   try {
     await saveSettings({ driveFolders: folders, replaceDriveFolders: true });
   } catch (error) {
@@ -449,13 +475,24 @@ async function persistFolderCache(folders) {
 
 async function ensureFolderPath(segments = [], options = {}) {
   const ownerEmail = normalizeEmail(options.uploaderEmail || cachedAccount?.emailAddress || "");
-  const settings = options.force ? {} : (options.settings || await fetchSettings());
-  const cachedOwner = normalizeEmail(settings.driveFolders?._owner || "");
-  const ownerChanged = Boolean(ownerEmail && cachedOwner && ownerEmail !== cachedOwner);
+  const cacheFoldersInSettings = options.cacheFoldersInSettings !== false;
+  const rootFolderName = sanitizeFolderName(options.rootFolderName || "College Notes");
 
-  const folders = (options.force || ownerChanged)
-    ? (ownerEmail ? { _owner: ownerEmail } : {})
-    : { ...(settings.driveFolders || {}), ...(ownerEmail ? { _owner: ownerEmail } : {}) };
+  let folders = {};
+  if (!options.force) {
+    if (cacheFoldersInSettings) {
+      const settings = options.settings || await fetchSettings();
+      const cachedOwner = normalizeEmail(settings.driveFolders?._owner || "");
+      const ownerChanged = Boolean(ownerEmail && cachedOwner && ownerEmail !== cachedOwner);
+      folders = ownerChanged
+        ? (ownerEmail ? { _owner: ownerEmail } : {})
+        : { ...(settings.driveFolders || {}), ...(ownerEmail ? { _owner: ownerEmail } : {}) };
+    } else {
+      folders = { ...readLocalFolderCache(ownerEmail), ...(ownerEmail ? { _owner: ownerEmail } : {}) };
+    }
+  } else if (ownerEmail) {
+    folders = { _owner: ownerEmail };
+  }
 
   try {
     let rootId = folders.root || "";
@@ -463,8 +500,8 @@ async function ensureFolderPath(segments = [], options = {}) {
       rootId = "";
     }
     if (!rootId) {
-      rootId = await findFolder("College Notes", "root");
-      if (!rootId) rootId = await createFolder("College Notes", "root");
+      rootId = await findFolder(rootFolderName, "root");
+      if (!rootId) rootId = await createFolder(rootFolderName, "root");
       folders.root = rootId;
     }
 
@@ -485,7 +522,7 @@ async function ensureFolderPath(segments = [], options = {}) {
       parentId = folderId;
     }
 
-    await persistFolderCache(folders);
+    await persistFolderCache(folders, { cacheFoldersInSettings, ownerEmail });
     return { folderId: parentId, folders };
   } catch (error) {
     if (!options.force && error instanceof DriveApiError && (error.status === 404 || error.status === 403)) {
@@ -730,6 +767,8 @@ export async function uploadPdf({
   type = "other",
   folderSegments = [],
   expectedUploaderEmail = "",
+  cacheFoldersInSettings = true,
+  rootFolderName = "College Notes",
   onProgress,
   signal,
   settings = null,
@@ -751,6 +790,8 @@ export async function uploadPdf({
     folderInfo = await ensureFolderPath(folderSegments, {
       settings: forceFolders ? undefined : (settings || undefined),
       uploaderEmail: account.emailAddress,
+      cacheFoldersInSettings,
+      rootFolderName,
       force: forceFolders,
     });
     const sessionUrl = await initiateResumableSession({

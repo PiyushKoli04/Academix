@@ -37,11 +37,13 @@ import { renderLibrary } from "./pages/library.js";
 import { renderSubject } from "./pages/subject.js";
 import { renderViewer } from "./pages/viewer.js";
 import { renderBookmarks } from "./pages/bookmarks.js";
+import { renderContribute } from "./pages/contribute.js";
 import { renderProfile } from "./pages/profile.js";
 import { renderAbout } from "./pages/about.js";
 import { renderDashboard } from "./pages/admin/dashboard.js";
 import { renderStructure } from "./pages/admin/structure.js";
 import { renderDocuments } from "./pages/admin/documents.js";
+import { renderContributions } from "./pages/admin/contributions.js";
 import { renderContributors } from "./pages/admin/contributors.js";
 import { renderAds } from "./pages/admin/ads.js";
 import { renderUsers } from "./pages/admin/users.js";
@@ -213,6 +215,7 @@ function pageForRoute(path) {
       dashboard: renderDashboard,
       structure: renderStructure,
       documents: renderDocuments,
+      contributions: renderContributions,
       contributors: renderContributors,
       ads: renderAds,
       users: renderUsers,
@@ -222,6 +225,7 @@ function pageForRoute(path) {
   if (path === "/library") return renderLibrary;
   if (path === "/bookmarks") return renderBookmarks;
   if (path === "/profile") return renderProfile;
+  if (path === "/contribute") return renderContribute;
   if (path === "/about") return renderAbout;
   if (path === "/terms") return renderTerms;
   if (path === "/privacy") return renderPrivacy;
@@ -233,7 +237,7 @@ function activeNavFor(route) {
   if (route.path === "/home" || route.path === "/") return "home";
   if (route.path === "/library" || route.path.startsWith("/subject") || route.path.startsWith("/viewer")) return "library";
   if (route.path === "/bookmarks") return "bookmarks";
-  if (route.path === "/profile" || route.path === "/about") return "profile";
+  if (route.path === "/profile" || route.path === "/about" || route.path === "/contribute") return "profile";
   return "";
 }
 

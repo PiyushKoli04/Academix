@@ -67,7 +67,7 @@ export function invalidateCache(prefix = "") {
 }
 
 function invalidateCatalog() {
-  ["years", "branches", "subjects", "documents", "activity", "dashboard", "search", "contributors", "ads"].forEach(invalidateCache);
+  ["years", "branches", "subjects", "documents", "activity", "dashboard", "search", "contributors", "contributions", "ads"].forEach(invalidateCache);
 }
 
 function cleanString(value, max = 500) {
@@ -755,12 +755,15 @@ export async function deleteDocument(document, actorUid) {
 export async function saveContributor(contributorId, data) {
   const payload = {
     name: cleanString(data.name, 100),
-    role: cleanString(data.role, 80) || "Notes Contributor",
+    role: cleanString(data.role, 80) || "Contributor",
     photoURL: cleanString(data.photoURL, 2048),
     link: cleanString(data.link, 2048),
     uploadsCount: cleanNumber(data.uploadsCount, 0),
     order: cleanNumber(data.order, 0),
   };
+  if (typeof data.uid === "string" && data.uid.trim()) {
+    payload.uid = cleanString(data.uid, 128);
+  }
   if (!payload.name) throw new Error("Contributor name is required.");
   if (contributorId) {
     await updateDoc(doc(db, "contributors", contributorId), payload);
@@ -773,6 +776,248 @@ export async function saveContributor(contributorId, data) {
 export async function deleteContributor(contributorId) {
   await deleteDoc(doc(db, "contributors", contributorId));
   invalidateCache("contributors");
+}
+
+function timestampMillis(value) {
+  if (!value) return 0;
+  if (typeof value.toDate === "function") return value.toDate().getTime();
+  if (typeof value._seconds === "number") return value._seconds * 1000;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function sortUserContributions(items) {
+  return [...items].sort((a, b) => {
+    const timeA = timestampMillis(a.updatedAt) || timestampMillis(a.createdAt);
+    const timeB = timestampMillis(b.updatedAt) || timestampMillis(b.createdAt);
+    return timeB - timeA;
+  });
+}
+
+function sortAdminContributions(items) {
+  const rank = { pending: 0, rejected: 1, approved: 2 };
+  return [...items].sort((a, b) => {
+    const rankDiff = (rank[a.status] ?? 9) - (rank[b.status] ?? 9);
+    if (rankDiff !== 0) return rankDiff;
+    const timeA = timestampMillis(a.updatedAt) || timestampMillis(a.createdAt);
+    const timeB = timestampMillis(b.updatedAt) || timestampMillis(b.createdAt);
+    return timeB - timeA;
+  });
+}
+
+export async function fetchMyContributions(uid) {
+  if (!uid) return [];
+  return cached(cacheKey("contributions", { uid }), 20_000, async () => {
+    const snapshot = await getDocs(query(collection(db, "contributions"), where("uid", "==", uid)));
+    return sortUserContributions(mapSnapshot(snapshot));
+  });
+}
+
+export async function fetchAllContributions() {
+  return cached(cacheKey("contributions", "admin-all"), 20_000, async () => {
+    const snapshot = await getDocs(query(collection(db, "contributions"), limit(250)));
+    return sortAdminContributions(mapSnapshot(snapshot));
+  });
+}
+
+export async function fetchContribution(contributionId) {
+  if (!contributionId) return null;
+  return cached(cacheKey("contributions", { contributionId }), 20_000, async () => {
+    const snapshot = await getDoc(doc(db, "contributions", contributionId));
+    return snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
+  });
+}
+
+export async function submitContribution(contributionId, data, user) {
+  const uid = cleanString(user?.uid || data?.uid, 128);
+  if (!uid) throw new Error("Sign in to contribute notes.");
+  if (!isValidDriveId(data?.driveFileId)) {
+    throw new Error("A valid Google Drive PDF file ID is required.");
+  }
+  const subjectId = cleanString(data.subjectId, 100);
+  if (!subjectId) throw new Error("Choose a subject for your notes.");
+  const subjectSnapshot = await getDoc(doc(db, "subjects", subjectId));
+  if (!subjectSnapshot.exists()) throw new Error("The selected subject no longer exists.");
+
+  const contributorName = cleanString(data.contributorName, 100);
+  if (!contributorName) throw new Error("Enter your contributor name.");
+  const title = cleanString(data.title, 180);
+  if (!title) throw new Error("Enter a document title.");
+
+  const payload = {
+    uid,
+    userEmail: cleanString(user?.email || data.userEmail, 200),
+    photoURL: cleanString(user?.photoURL || data.photoURL, 2048),
+    contributorName,
+    contributorLink: cleanString(data.contributorLink, 2048),
+    subjectId,
+    title,
+    description: cleanString(data.description, 600),
+    type: cleanString(data.type, 40) || "other",
+    driveFileId: String(data.driveFileId).trim(),
+    driveSource: data.driveSource === "upload" ? "upload" : "link",
+    pages: data.pages ? cleanNumber(data.pages, 0) : 0,
+    sizeLabel: cleanString(data.sizeLabel, 30),
+    tags: cleanTags(data.tags),
+    uploadedBy: cleanString(data.uploadedBy, 200),
+    status: "pending",
+    rejectionReason: "",
+    reviewedBy: "",
+    reviewedAt: null,
+    approvedDocId: "",
+    contributorId: "",
+    updatedAt: serverTimestamp(),
+  };
+
+  let savedId = cleanString(contributionId, 120);
+  if (savedId) {
+    await updateDoc(doc(db, "contributions", savedId), payload);
+  } else {
+    const ref = await addDoc(collection(db, "contributions"), {
+      ...payload,
+      createdAt: serverTimestamp(),
+    });
+    savedId = ref.id;
+  }
+  invalidateCache("contributions");
+  invalidateCache("dashboard");
+  return savedId;
+}
+
+export async function deleteContribution(contributionId) {
+  if (!contributionId) return;
+  await deleteDoc(doc(db, "contributions", contributionId));
+  invalidateCache("contributions");
+  invalidateCache("dashboard");
+}
+
+async function upsertContributorForUser({ uid, name, photoURL = "", link = "" }) {
+  const cleanName = cleanString(name, 100) || "Contributor";
+  const cleanPhoto = cleanString(photoURL, 2048);
+  const cleanLink = cleanString(link, 2048);
+
+  if (uid) {
+    const existingSnap = await getDocs(
+      query(collection(db, "contributors"), where("uid", "==", uid), limit(1)),
+    );
+    if (!existingSnap.empty) {
+      const existingDoc = existingSnap.docs[0];
+      const existingData = existingDoc.data() || {};
+      const patch = {
+        name: cleanName,
+        role: cleanString(existingData.role, 80) || "Contributor",
+        uploadsCount: increment(1),
+      };
+      if (cleanPhoto) patch.photoURL = cleanPhoto;
+      if (cleanLink) patch.link = cleanLink;
+      await updateDoc(existingDoc.ref, patch);
+      invalidateCache("contributors");
+      return { contributorId: existingDoc.id, created: false };
+    }
+  }
+
+  const countSnap = await getCountFromServer(collection(db, "contributors")).catch(() => ({ data: () => ({ count: 0 }) }));
+  const nextOrder = countSnap.data?.()?.count ?? 0;
+  const ref = await addDoc(collection(db, "contributors"), {
+    uid: cleanString(uid, 128),
+    name: cleanName,
+    role: "Contributor",
+    photoURL: cleanPhoto,
+    link: cleanLink,
+    uploadsCount: 1,
+    order: nextOrder,
+    createdAt: serverTimestamp(),
+  });
+  invalidateCache("contributors");
+  return { contributorId: ref.id, created: true };
+}
+
+export async function approveContribution(contribution, edits = {}, actorUid = "") {
+  if (!contribution?.id) throw new Error("Contribution record is missing.");
+  const subjectId = cleanString(edits.subjectId ?? contribution.subjectId, 100);
+  const title = cleanString(edits.title ?? contribution.title, 180) || "Untitled document";
+  const description = cleanString(edits.description ?? contribution.description, 600);
+  const type = cleanString(edits.type ?? contribution.type, 40) || "other";
+  const pages = cleanNumber(edits.pages ?? contribution.pages, 0);
+  const tags = Array.isArray(edits.tags) ? cleanTags(edits.tags) : cleanTags(contribution.tags);
+  const contributorName = cleanString(edits.contributorName ?? contribution.contributorName, 100) || "Contributor";
+  const contributorLink = cleanString(edits.contributorLink ?? contribution.contributorLink, 2048);
+
+  const { contributorId, created } = await upsertContributorForUser({
+    uid: contribution.uid || "",
+    name: contributorName,
+    photoURL: contribution.photoURL || "",
+    link: contributorLink,
+  });
+
+  let approvedDocId = "";
+  try {
+    approvedDocId = await saveDocument(
+      null,
+      {
+        subjectId,
+        title,
+        description,
+        type,
+        driveFileId: contribution.driveFileId,
+        pages,
+        sizeLabel: contribution.sizeLabel || "",
+        tags,
+        contributorId,
+        isNew: Boolean(edits.isNew ?? true),
+        mimeType: "application/pdf",
+        uploadedBy: `${contributorName} (Contributor)`,
+      },
+      actorUid,
+    );
+  } catch (error) {
+    if (!created && contributorId) {
+      await updateDoc(doc(db, "contributors", contributorId), { uploadsCount: increment(-1) }).catch(() => {});
+    } else if (created && contributorId) {
+      await deleteDoc(doc(db, "contributors", contributorId)).catch(() => {});
+    }
+    invalidateCache("contributors");
+    throw error;
+  }
+
+  await updateDoc(doc(db, "contributions", contribution.id), {
+    status: "approved",
+    approvedDocId,
+    contributorId,
+    contributorName,
+    contributorLink,
+    subjectId,
+    title,
+    description,
+    type,
+    pages,
+    tags,
+    rejectionReason: "",
+    reviewedBy: cleanString(actorUid, 128),
+    reviewedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  invalidateCache("contributions");
+  invalidateCache("contributors");
+  invalidateCache("dashboard");
+  return { approvedDocId, contributorId };
+}
+
+export async function rejectContribution(contributionId, reason = "", actorUid = "") {
+  if (!contributionId) throw new Error("Contribution ID is missing.");
+  const cleanReason = cleanString(reason, 600)
+    || "Rejected by administrator. Please review the subject, title, or Drive sharing settings and resubmit.";
+  await updateDoc(doc(db, "contributions", contributionId), {
+    status: "rejected",
+    rejectionReason: cleanReason,
+    approvedDocId: "",
+    reviewedBy: cleanString(actorUid, 128),
+    reviewedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  invalidateCache("contributions");
+  invalidateCache("dashboard");
 }
 
 export async function saveAd(adId, data) {
@@ -843,6 +1088,7 @@ export async function fetchDashboardData() {
       subjectsCount,
       documentsCount,
       contributorsCount,
+      pendingContributionsCount,
       topSubjectsSnapshot,
       recentDocumentsSnapshot,
     ] = await Promise.all([
@@ -850,6 +1096,7 @@ export async function fetchDashboardData() {
       getCountFromServer(collection(db, "subjects")).catch(() => ({ data: () => ({ count: 0 }) })),
       getCountFromServer(collection(db, "documents")).catch(() => ({ data: () => ({ count: 0 }) })),
       getCountFromServer(collection(db, "contributors")).catch(() => ({ data: () => ({ count: 0 }) })),
+      getCountFromServer(query(collection(db, "contributions"), where("status", "==", "pending"))).catch(() => ({ data: () => ({ count: 0 }) })),
       getDocs(query(collection(db, "subjects"), orderBy("viewCount", "desc"), limit(5))).catch(() => ({ docs: [] })),
       getDocs(query(collection(db, "documents"), orderBy("createdAt", "desc"), limit(5))).catch(() => ({ docs: [] })),
     ]);
@@ -858,6 +1105,7 @@ export async function fetchDashboardData() {
       totalSubjects: subjectsCount.data?.()?.count ?? 0,
       totalDocuments: documentsCount.data?.()?.count ?? 0,
       totalContributors: contributorsCount.data?.()?.count ?? 0,
+      pendingContributions: pendingContributionsCount.data?.()?.count ?? 0,
       topSubjects: mapSnapshot(topSubjectsSnapshot),
       recentDocuments: mapSnapshot(recentDocumentsSnapshot),
     };

@@ -1,13 +1,14 @@
 import {
   adsForPlacement,
   fetchActiveAds,
+  fetchContribution,
   fetchDocument,
   fetchSubject,
   recordRecentlyViewed,
   toggleBookmark,
 } from "../db.js";
 import { getPreviewUrl, isValidDriveId } from "../drive.js";
-import { setLastView, state } from "../state.js";
+import { isAdmin, setLastView, state } from "../state.js";
 import {
   adStripHTML,
   escapeHtml,
@@ -17,13 +18,15 @@ import {
   typeChipHTML,
 } from "../ui.js";
 
-function backTarget(subjectId) {
+function backTarget(subjectId, isContribution = false) {
+  if (isContribution) return isAdmin() ? "#/admin/contributions" : "#/contribute";
   return subjectId ? `#/subject/${escapeHtml(subjectId)}` : "#/library";
 }
 
 export async function renderViewer(root, context) {
   const docId = context.docId || "";
-  const fileDoc = await fetchDocument(docId);
+  const isContribution = context.query?.get("kind") === "contribution";
+  const fileDoc = isContribution ? await fetchContribution(docId) : await fetchDocument(docId);
   if (!fileDoc) {
     document.body.dataset.page = "viewer";
     root.innerHTML = `<main class="viewer-page"><div class="viewer-error">
@@ -32,7 +35,7 @@ export async function renderViewer(root, context) {
         <h1 class="viewer-error__title">Document not found</h1>
         <p class="viewer-error__text">This document may have been removed or the link is incomplete.</p>
         <div class="viewer-error__actions">
-          <a class="btn btn--lime btn--block" href="#/library">Back to library</a>
+          <a class="btn btn--lime btn--block" href="${isContribution ? backTarget("", true) : "#/library"}">Go back</a>
         </div>
       </div>
     </div></main>`;
@@ -40,7 +43,7 @@ export async function renderViewer(root, context) {
   }
 
   const subject = fileDoc.subjectId ? await fetchSubject(fileDoc.subjectId).catch(() => null) : null;
-  const ads = state.settings?.adsEnabled ? await fetchActiveAds().catch(() => []) : [];
+  const ads = !isContribution && state.settings?.adsEnabled ? await fetchActiveAds().catch(() => []) : [];
   if (!location.hash.startsWith(`#/viewer/${docId}`)) return () => {};
 
   const previewUrl = getPreviewUrl(fileDoc.driveFileId);
@@ -49,9 +52,9 @@ export async function renderViewer(root, context) {
       <div class="viewer-error__card">
         <div class="viewer-error__icon">${icon("alert-triangle")}</div>
         <h1 class="viewer-error__title">Preview unavailable</h1>
-        <p class="viewer-error__text">This document’s Google Drive file ID is invalid. Ask your administrator to re-add the document.</p>
+        <p class="viewer-error__text">This document’s Google Drive file ID is invalid.</p>
         <div class="viewer-error__actions">
-          <a class="btn btn--lime btn--block" href="${backTarget(fileDoc.subjectId)}">Go back</a>
+          <a class="btn btn--lime btn--block" href="${backTarget(fileDoc.subjectId, isContribution)}">Go back</a>
         </div>
       </div>
     </div></main>`;
@@ -61,7 +64,7 @@ export async function renderViewer(root, context) {
   setPageMeta(fileDoc.title || "View notes", fileDoc.description || "Read notes in Academix's view-only reader.");
   const subjectName = subject?.name || "Subject";
   const bookmarks = Array.isArray(state.profile?.bookmarks) ? state.profile.bookmarks : [];
-  let saved = bookmarks.includes(`doc:${fileDoc.id}`);
+  let saved = !isContribution && bookmarks.includes(`doc:${fileDoc.id}`);
   const viewerAd = adsForPlacement(ads, "viewer_bottom")[0] || null;
   const reportEmail = String(state.settings?.contactEmail || "").trim();
   const reportSubject = encodeURIComponent(`Academix document report: ${fileDoc.title || "Untitled"}`);
@@ -69,17 +72,17 @@ export async function renderViewer(root, context) {
 
   root.innerHTML = `<main class="viewer-page page--viewer">
     <header class="viewer-topbar">
-      <a class="viewer-topbar__back" href="${backTarget(fileDoc.subjectId)}" aria-label="Back">${icon("arrow-left")}</a>
+      <a class="viewer-topbar__back" href="${backTarget(fileDoc.subjectId, isContribution)}" aria-label="Back">${icon("arrow-left")}</a>
       <div class="viewer-topbar__copy">
         <div class="viewer-topbar__eyebrow">
           <span>${escapeHtml(subject?.code || subjectName)}</span>
-          <span class="viewer-topbar__view-only">${icon("shield-check")} View only</span>
+          <span class="viewer-topbar__view-only">${icon("shield-check")} ${isContribution ? "Submission preview" : "View only"}</span>
         </div>
         <h1 class="viewer-topbar__title">${escapeHtml(fileDoc.title || "Untitled document")}</h1>
       </div>
       <div class="viewer-topbar__actions">
         <button class="viewer-icon-btn" type="button" id="viewer-fullscreen-top" title="Full screen" aria-label="Toggle full screen">${icon("maximize")}</button>
-        <button class="viewer-icon-btn ${saved ? "is-saved" : ""}" type="button" id="viewer-bookmark" aria-label="${saved ? "Remove bookmark" : "Bookmark this document"}" aria-pressed="${saved}">${icon("bookmark")}</button>
+        ${isContribution ? "" : `<button class="viewer-icon-btn ${saved ? "is-saved" : ""}" type="button" id="viewer-bookmark" aria-label="${saved ? "Remove bookmark" : "Bookmark this document"}" aria-pressed="${saved}">${icon("bookmark")}</button>`}
       </div>
     </header>
 
@@ -108,7 +111,7 @@ export async function renderViewer(root, context) {
           <p class="viewer-error__text">Check your connection and try again. If it still won’t load, report it so your admin can fix the file.</p>
           <div class="viewer-error__actions">
             <button class="btn btn--lime btn--block" type="button" id="viewer-retry">${icon("refresh")} Try again</button>
-            <a class="btn btn--block viewer-back-btn" href="${backTarget(fileDoc.subjectId)}">Back to subject</a>
+            <a class="btn btn--block viewer-back-btn" href="${backTarget(fileDoc.subjectId, isContribution)}">${isContribution ? "Go back" : "Back to subject"}</a>
             <button class="viewer-report-link" type="button" id="viewer-report">Report a problem</button>
           </div>
         </div>
@@ -320,27 +323,29 @@ export async function renderViewer(root, context) {
   window.addEventListener("beforeprint", hideBeforePrint);
   window.addEventListener("afterprint", restoreAfterPrint);
 
-  const viewedAt = new Date();
-  setLastView({
-    subjectId: fileDoc.subjectId || "",
-    subjectName,
-    docId: fileDoc.id,
-    title: fileDoc.title || "Untitled document",
-    type: fileDoc.type || "other",
-    viewedAt: viewedAt.toISOString(),
-  });
-  const localEntry = {
-    subjectId: fileDoc.subjectId || "",
-    docId: fileDoc.id,
-    title: fileDoc.title || "Untitled document",
-    type: fileDoc.type || "other",
-    viewedAt,
-  };
-  if (state.profile) {
-    const current = Array.isArray(state.profile.recentlyViewed) ? state.profile.recentlyViewed : [];
-    state.profile.recentlyViewed = [localEntry, ...current.filter((entry) => !(entry.subjectId === localEntry.subjectId && entry.docId === localEntry.docId))].slice(0, 12);
+  if (!isContribution) {
+    const viewedAt = new Date();
+    setLastView({
+      subjectId: fileDoc.subjectId || "",
+      subjectName,
+      docId: fileDoc.id,
+      title: fileDoc.title || "Untitled document",
+      type: fileDoc.type || "other",
+      viewedAt: viewedAt.toISOString(),
+    });
+    const localEntry = {
+      subjectId: fileDoc.subjectId || "",
+      docId: fileDoc.id,
+      title: fileDoc.title || "Untitled document",
+      type: fileDoc.type || "other",
+      viewedAt,
+    };
+    if (state.profile) {
+      const current = Array.isArray(state.profile.recentlyViewed) ? state.profile.recentlyViewed : [];
+      state.profile.recentlyViewed = [localEntry, ...current.filter((entry) => !(entry.subjectId === localEntry.subjectId && entry.docId === localEntry.docId))].slice(0, 12);
+    }
+    recordRecentlyViewed(state.profile.uid, localEntry).catch(() => {});
   }
-  recordRecentlyViewed(state.profile.uid, localEntry).catch(() => {});
 
   return () => {
     disposed = true;

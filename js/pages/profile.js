@@ -5,6 +5,7 @@ import {
   signOutUser,
   updateOwnProfile,
 } from "../auth.js";
+import { fetchMyContributions } from "../db.js";
 import { openLegalSheet } from "../legal.js";
 import {
   branchName,
@@ -252,6 +253,20 @@ export function renderProfile(root, context = {}) {
         </section>
 
         <section class="profile-section">
+          <h2 class="profile-section__title">Contribute notes</h2>
+          <div class="profile-menu">
+            <a class="profile-menu__item" href="#/contribute" id="profile-contribute">
+              <span class="profile-menu__icon profile-menu__icon--lime">${icon("upload-cloud")}</span>
+              <div class="profile-menu__copy">
+                <span class="profile-menu__label">Share notes via Google Drive</span>
+                <span class="profile-menu__value" data-profile-contrib-status>Upload PDFs as a contributor &amp; track admin review</span>
+              </div>
+              <span class="profile-menu__chevron">${icon("chevron-right")}</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="profile-section">
           <h2 class="profile-section__title">App</h2>
           <div class="profile-menu">
             <a class="profile-menu__item" href="#/about">
@@ -367,6 +382,24 @@ export function renderProfile(root, context = {}) {
     });
     if (confirmed) await signOutUser();
   });
+
+  if (profile.uid) {
+    fetchMyContributions(profile.uid)
+      .then((items) => {
+        if (!location.hash.startsWith("#/profile")) return;
+        const statusEl = root.querySelector("[data-profile-contrib-status]");
+        if (!statusEl || !items.length) return;
+        const pending = items.filter((i) => i.status === "pending").length;
+        const approved = items.filter((i) => i.status === "approved").length;
+        const rejected = items.filter((i) => i.status === "rejected").length;
+        const parts = [];
+        if (pending) parts.push(`${pending} pending`);
+        if (approved) parts.push(`${approved} approved`);
+        if (rejected) parts.push(`${rejected} rejected`);
+        statusEl.textContent = parts.join(" · ") || `${items.length} submitted`;
+      })
+      .catch(() => {});
+  }
 
   return () => {};
 }

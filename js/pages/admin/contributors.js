@@ -26,8 +26,8 @@ export async function renderContributors(main, context) {
       ${contributors.map((contributor) => `<article class="admin-person-card">
         ${avatarHTML(contributor, { size: "md" })}
         <div class="admin-person-card__copy">
-          <p class="admin-person-card__name">${escapeHtml(contributor.name || "Contributor")}</p>
-          <p class="admin-person-card__meta">${escapeHtml(contributor.role || "Notes Contributor")} · ${Number(contributor.uploadsCount) || 0} uploads</p>
+          <p class="admin-person-card__name">${escapeHtml(contributor.name || "Contributor")}${contributor.uid ? ' <span class="role-badge">Member</span>' : ""}</p>
+          <p class="admin-person-card__meta">${escapeHtml(contributor.role || "Contributor")} · ${Number(contributor.uploadsCount) || 0} uploads</p>
           ${contributor.link ? `<p class="admin-person-card__meta">${escapeHtml(contributor.link)}</p>` : ""}
         </div>
         <div class="admin-person-card__actions">

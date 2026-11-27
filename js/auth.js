@@ -128,6 +128,8 @@ export async function updateOwnProfile(uid, patch) {
   if (typeof patch.yearId === "string") allowed.yearId = patch.yearId.slice(0, 100);
   if (typeof patch.termsAccepted === "boolean") allowed.termsAccepted = patch.termsAccepted;
   if (typeof patch.termsAcceptedAt === "string") allowed.termsAcceptedAt = patch.termsAcceptedAt;
+  if (typeof patch.contributorName === "string") allowed.contributorName = patch.contributorName.trim().slice(0, 100);
+  if (typeof patch.contributorLink === "string") allowed.contributorLink = patch.contributorLink.trim().slice(0, 2048);
   if (!Object.keys(allowed).length) return;
   await updateDoc(userRef(userId), allowed);
   if (auth.currentUser && allowed.name) {

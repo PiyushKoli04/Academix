@@ -1,4 +1,4 @@
-const CACHE_VERSION = "academix-v13";
+const CACHE_VERSION = "academix-v14";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const FONT_CACHE = `${CACHE_VERSION}-fonts`;
 
@@ -29,11 +29,13 @@ const APP_SHELL = [
   "./js/pages/viewer.js",
   "./js/pages/bookmarks.js",
   "./js/pages/profile.js",
+  "./js/pages/contribute.js",
   "./js/pages/about.js",
   "./js/pages/admin/shared.js",
   "./js/pages/admin/dashboard.js",
   "./js/pages/admin/structure.js",
   "./js/pages/admin/documents.js",
+  "./js/pages/admin/contributions.js",
   "./js/pages/admin/contributors.js",
   "./js/pages/admin/ads.js",
   "./js/pages/admin/users.js",
