@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#F4F3F5" />
   <meta name="color-scheme" content="light" />
-  <title>Install Academix App — Free Engineering Notes &amp; Study Library</title>
-  <meta name="description" content="Install the Academix browser app directly to your Android, iOS, or desktop home screen. Access semester-wise engineering notes, PYQs, formula sheets, syllabus trackers, and view-only PDFs anytime." />
+  <title>Academix — Install App | Free Engineering Notes &amp; Study Library</title>
+  <meta name="description" content="Install Academix directly from your browser onto Android, iPhone, or desktop. Browse screenshots and access semester-wise engineering notes, PYQs, formula sheets, and syllabus trackers." />
   <meta name="application-name" content="Academix" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -18,8 +18,8 @@
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://academix.syntaxsyndicate.co.in/install-app/" />
   <meta property="og:site_name" content="Academix" />
-  <meta property="og:title" content="Install Academix App — Engineering Notes &amp; Study Library" />
-  <meta property="og:description" content="One-tap browser install for Academix. Keep semester-wise PDFs, PYQs, module trackers, and bookmarks right on your home screen." />
+  <meta property="og:title" content="Install Academix — Engineering Notes &amp; Study Library" />
+  <meta property="og:description" content="Get the Academix app from your browser. Keep semester-wise PDFs, PYQs, module trackers, and bookmarks on your home screen." />
   <meta property="og:image" content="https://academix.syntaxsyndicate.co.in/icons/og.png?v=2" />
   <meta property="og:image:secure_url" content="https://academix.syntaxsyndicate.co.in/icons/og.png?v=2" />
   <meta property="og:image:width" content="1200" />
@@ -28,8 +28,8 @@
   <!-- Twitter / X -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:url" content="https://academix.syntaxsyndicate.co.in/install-app/" />
-  <meta name="twitter:title" content="Install Academix App — Your Notes. One Place." />
-  <meta name="twitter:description" content="Install the Academix PWA from your browser for instant full-screen access to engineering notes, PYQs, and syllabus trackers." />
+  <meta name="twitter:title" content="Install Academix — Your Notes. One Place." />
+  <meta name="twitter:description" content="Install the Academix PWA from your browser for full-screen access to engineering notes, PYQs, and syllabus trackers." />
   <meta name="twitter:image" content="https://academix.syntaxsyndicate.co.in/icons/og.png?v=2" />
 
   <script type="application/ld+json">
@@ -71,15 +71,16 @@
       padding-bottom: calc(36px + env(safe-area-inset-bottom));
     }
 
+    /* Frosted Glass Top Navbar */
     .install-topbar-wrap {
       position: sticky;
       top: 10px;
       z-index: 40;
-      padding: 10px 16px 0;
+      padding: 10px 14px 0;
     }
 
     .install-topbar {
-      width: min(100%, 1060px);
+      width: min(100%, 980px);
       margin: 0 auto;
       display: flex;
       align-items: center;
@@ -87,8 +88,8 @@
       gap: 10px;
       padding: 9px 12px;
       border-radius: 26px;
-      background: rgba(255, 255, 255, 0.78);
-      border: 1px solid rgba(255, 255, 255, 0.76);
+      background: rgba(255, 255, 255, 0.84);
+      border: 1px solid rgba(255, 255, 255, 0.88);
       box-shadow: 0 12px 32px rgba(55, 42, 62, 0.08);
       backdrop-filter: blur(20px) saturate(1.2);
       -webkit-backdrop-filter: blur(20px) saturate(1.2);
@@ -129,226 +130,151 @@
       flex: 0 0 auto;
     }
 
-    .install-page-main {
-      width: min(100%, 1060px);
+    /* Main Play-Store Listing Shell */
+    .store-main {
+      width: min(100%, 980px);
       margin: 0 auto;
-      padding: 18px 16px 24px;
-    }
-
-    /* Hero section mirroring .auth-screen */
-    .install-hero {
-      position: relative;
-      display: grid;
-      gap: 24px;
-      align-items: center;
-      padding: 6px 0 28px;
-    }
-
-    .install-hero__intro {
-      order: 2;
-      padding: 6px 2px 0;
-      animation: fade-up 500ms var(--ease-out) both;
-    }
-
-    .install-eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      padding: 6px 12px;
-      border-radius: var(--radius-pill);
-      background: rgba(255, 255, 255, 0.62);
-      border: 1px solid rgba(255, 255, 255, 0.8);
-      font-size: 10.5px;
-      font-weight: 600;
-      color: var(--ink-muted);
-      backdrop-filter: blur(10px);
-    }
-
-    .install-eyebrow .dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--lime-deep);
-    }
-
-    .install-heading {
-      margin-top: 16px;
-      font-size: clamp(38px, 10.5vw, 66px);
-      line-height: 0.96;
-      letter-spacing: -0.068em;
-    }
-
-    .install-heading span {
-      display: block;
-    }
-
-    .install-heading .light {
-      font-weight: 300;
-    }
-
-    .install-heading .strong {
-      font-weight: 600;
-    }
-
-    .install-sub {
-      max-width: 460px;
-      margin-top: 16px;
-      color: var(--text-secondary);
-      font-size: 13.5px;
-      line-height: 1.65;
-    }
-
-    .install-hero__pills {
+      padding: 16px 14px 28px;
       display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 20px;
+      flex-direction: column;
+      gap: 16px;
     }
 
-    .install-preview-row {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-      margin-top: 22px;
-      max-width: 440px;
-    }
-
-    .install-mini-preview {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 11px 12px;
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.72);
-      border: 1px solid rgba(255, 255, 255, 0.85);
-      box-shadow: 0 12px 30px rgba(55, 42, 62, 0.07);
-      backdrop-filter: blur(14px);
-    }
-
-    .install-mini-preview__icon {
-      width: 34px;
-      height: 34px;
-      flex: 0 0 34px;
-      display: grid;
-      place-items: center;
-      border-radius: 11px;
-      background: var(--lime-soft);
-      color: var(--ink-soft);
-    }
-
-    .install-mini-preview__icon--tint {
-      background: var(--surface-tint);
-    }
-
-    .install-mini-preview__title {
-      font-size: 11px;
-      font-weight: 700;
-      line-height: 1.2;
-    }
-
-    .install-mini-preview__meta {
-      margin-top: 2px;
-      font-size: 9.5px;
-      color: var(--text-secondary);
-      line-height: 1.3;
-    }
-
-    /* Frosted Light Install Card matching Academix UI */
-    .install-card {
-      position: relative;
-      overflow: hidden;
-      padding: 22px;
+    .store-surface {
       border-radius: var(--radius-2xl);
-      color: var(--ink);
       background:
-        radial-gradient(95% 65% at 100% 0%, rgba(201, 219, 116, 0.24), transparent 58%),
+        radial-gradient(95% 65% at 100% 0%, rgba(201, 219, 116, 0.2), transparent 58%),
         rgba(255, 255, 255, 0.88);
       border: 1px solid rgba(255, 255, 255, 0.92);
-      box-shadow: 0 22px 54px rgba(55, 42, 62, 0.10);
+      box-shadow: 0 20px 50px rgba(55, 42, 62, 0.08);
       backdrop-filter: blur(22px) saturate(1.2);
       -webkit-backdrop-filter: blur(22px) saturate(1.2);
-      animation: pop-in 500ms var(--ease-out) both;
     }
 
-    .install-card::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background: linear-gradient(125deg, rgba(255, 255, 255, 0.45), transparent 40%);
+    /* Top App Store Header Card */
+    .store-header-card {
+      padding: 20px 18px;
+      animation: fade-up 450ms var(--ease-out) both;
     }
 
-    .install-card > * {
-      position: relative;
-      z-index: 1;
-    }
-
-    .install-card__top {
+    .store-app-row {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
+      gap: 16px;
     }
 
-    .install-card__app {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex: 1;
-      min-width: 0;
-    }
-
-    .install-card .auth-card__badge {
-      flex: 0 0 40px;
-      width: 40px;
-      height: 40px;
-      background: var(--lime-soft);
-      color: var(--ink-soft);
-      border: 1px solid rgba(169, 188, 85, 0.35);
-    }
-
-    .install-card__app-icon {
-      width: 54px;
-      height: 54px;
-      flex: 0 0 54px;
-      border-radius: 16px;
+    .store-app-icon {
+      width: 72px;
+      height: 72px;
+      flex: 0 0 72px;
+      border-radius: 20px;
       background: var(--lime);
       overflow: hidden;
-      box-shadow: 0 10px 24px rgba(55, 42, 62, 0.12);
+      box-shadow: 0 12px 28px rgba(55, 42, 62, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.9);
     }
 
-    .install-card__app-icon img {
+    .store-app-icon img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
     }
 
-    .install-card__title {
-      font-size: clamp(20px, 5.4vw, 24px);
-      font-weight: 500;
+    .store-app-meta {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .store-app-title {
+      font-size: clamp(24px, 6vw, 34px);
+      font-weight: 700;
       letter-spacing: -0.045em;
-      line-height: 1.1;
+      line-height: 1.06;
       color: var(--ink);
     }
 
-    .install-card__title strong {
-      font-weight: 700;
+    .store-app-dev {
+      margin-top: 5px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #4f6b13;
     }
 
-    .install-card__subtitle {
-      margin-top: 4px;
-      color: var(--text-secondary);
+    .store-app-sub {
+      margin-top: 3px;
       font-size: 11px;
-      line-height: 1.45;
+      color: var(--text-secondary);
+    }
+
+    /* Play Store Info Strip (Stats with vertical dividers) */
+    .store-stats {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      padding: 12px 4px;
+      border-radius: 18px;
+      background: rgba(247, 246, 248, 0.85);
+      border: 1px solid var(--line);
+    }
+
+    .store-stat {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 2px 8px;
+    }
+
+    .store-stat + .store-stat::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 18%;
+      bottom: 18%;
+      width: 1px;
+      background: var(--line-strong);
+    }
+
+    .store-stat__val {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.2;
+    }
+
+    .store-stat__lbl {
+      margin-top: 3px;
+      font-size: 10px;
+      color: var(--text-secondary);
+      line-height: 1.25;
+    }
+
+    /* Action Row */
+    .store-install-area {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .store-status-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
     }
 
     .install-status-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      margin-top: 16px;
-      padding: 6px 11px;
+      padding: 5px 11px;
       border-radius: var(--radius-pill);
       background: var(--surface-soft);
       border: 1px solid var(--line);
@@ -359,7 +285,7 @@
 
     .install-status-badge.is-ready {
       background: var(--lime-soft);
-      border-color: rgba(169, 188, 85, 0.42);
+      border-color: rgba(169, 188, 85, 0.45);
       color: #36440f;
     }
 
@@ -369,41 +295,54 @@
       color: #2d6625;
     }
 
-    .install-primary-btn {
+    .store-install-btn {
       width: 100%;
-      min-height: 54px;
-      margin-top: 16px;
+      min-height: 50px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      padding: 14px 20px;
+      gap: 9px;
+      padding: 13px 24px;
       border-radius: var(--radius-pill);
       background: var(--ink-soft);
       color: #fff;
       font-size: 14px;
       font-weight: 700;
       letter-spacing: -0.015em;
-      box-shadow: 0 12px 26px rgba(28, 28, 30, 0.18);
+      box-shadow: 0 12px 26px rgba(28, 28, 30, 0.16);
       transition: transform 140ms var(--ease-out), background 140ms ease, box-shadow 140ms ease;
     }
 
-    .install-primary-btn svg {
+    .store-install-btn svg {
       color: var(--lime);
     }
 
-    .install-primary-btn:hover {
+    .store-install-btn:hover {
       background: #2c2c30;
       transform: translateY(-1px);
-      box-shadow: 0 16px 32px rgba(28, 28, 30, 0.24);
+      box-shadow: 0 16px 32px rgba(28, 28, 30, 0.22);
     }
 
-    .install-primary-btn:active {
+    .store-install-btn:active {
       transform: scale(0.985);
     }
 
+    .store-help-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      padding: 4px 2px;
+    }
+
+    .store-help-toggle:hover {
+      color: var(--ink);
+    }
+
     .install-guide {
-      margin-top: 16px;
+      margin-top: 4px;
       padding: 14px;
       border-radius: 18px;
       background: var(--surface-soft);
@@ -412,7 +351,7 @@
     }
 
     .install-guide.is-highlighted {
-      border-color: rgba(169, 188, 85, 0.55);
+      border-color: rgba(169, 188, 85, 0.58);
       background: var(--lime-soft);
     }
 
@@ -483,162 +422,256 @@
       font-weight: 700;
     }
 
-    .install-card__foot {
-      margin-top: 14px;
-      font-size: 10px;
-      line-height: 1.5;
-      color: var(--text-hint);
-      text-align: center;
+    /* Play Store Screenshots Gallery Section */
+    .store-section {
+      padding: 20px 18px;
     }
 
-    /* Features Grid Section */
-    .features-section {
-      margin-top: 22px;
-    }
-
-    .features-head {
+    .store-section__head {
       display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-bottom: 18px;
-    }
-
-    .features-head__eyebrow {
-      font-size: 10.5px;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--text-secondary);
-    }
-
-    .features-head__title {
-      font-size: clamp(26px, 6vw, 38px);
-      font-weight: 300;
-      letter-spacing: -0.05em;
-    }
-
-    .features-head__title strong {
-      font-weight: 600;
-    }
-
-    .features-head__sub {
-      max-width: 560px;
-      font-size: 12.5px;
-      line-height: 1.6;
-      color: var(--text-secondary);
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: 1fr;
+      align-items: center;
+      justify-content: space-between;
       gap: 12px;
+      margin-bottom: 14px;
     }
 
-    .feature-card {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding: 18px;
-      border-radius: var(--radius-xl);
-      background: rgba(255, 255, 255, 0.88);
-      border: 1px solid rgba(255, 255, 255, 0.85);
-      box-shadow: var(--shadow-card);
-      backdrop-filter: blur(12px);
-      transition: transform 180ms var(--ease-out), box-shadow 180ms ease;
-    }
-
-    .feature-card:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-card-hover);
-    }
-
-    .feature-card--lime {
-      background:
-        radial-gradient(95% 110% at 100% 0%, rgba(255, 255, 255, 0.45), transparent 62%),
-        var(--lime-soft);
-      border-color: rgba(201, 219, 116, 0.45);
-    }
-
-    .feature-card--dark {
-      background: var(--gradient-dark-card);
-      border-color: rgba(255, 255, 255, 0.08);
-      color: #fff;
-    }
-
-    .feature-card__icon {
-      width: 40px;
-      height: 40px;
-      display: grid;
-      place-items: center;
-      border-radius: 13px;
-      background: var(--surface-soft);
-      color: var(--ink-soft);
-    }
-
-    .feature-card--lime .feature-card__icon {
-      background: var(--lime);
-    }
-
-    .feature-card--dark .feature-card__icon {
-      background: rgba(255, 255, 255, 0.1);
-      color: var(--lime);
-    }
-
-    .feature-card__title {
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: -0.025em;
-    }
-
-    .feature-card__text {
-      font-size: 12px;
-      line-height: 1.55;
-      color: var(--text-secondary);
-    }
-
-    .feature-card--dark .feature-card__text {
-      color: rgba(255, 255, 255, 0.68);
-    }
-
-    .install-footer-cta {
-      margin-top: 22px;
-      padding: 20px;
-      border-radius: var(--radius-xl);
-      background: rgba(255, 255, 255, 0.78);
-      border: 1px solid rgba(255, 255, 255, 0.85);
-      box-shadow: var(--shadow-card);
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .install-footer-cta__title {
-      font-size: 18px;
-      font-weight: 600;
-      letter-spacing: -0.03em;
-    }
-
-    .install-footer-cta__text {
-      margin-top: 3px;
-      font-size: 12px;
-      color: var(--text-secondary);
-    }
-
-    .install-footer-cta__actions {
-      display: flex;
-      flex-wrap: wrap;
+    .store-section__title-wrap {
+      display: inline-flex;
+      align-items: center;
       gap: 8px;
     }
 
+    .store-section__title {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+    }
+
+    .store-section__arrow {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: var(--text-secondary);
+      background: var(--surface-soft);
+    }
+
+    .store-section__sub {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .store-gallery-wrap {
+      position: relative;
+    }
+
+    .store-gallery {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      padding: 2px 2px 6px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .store-gallery::-webkit-scrollbar {
+      display: none;
+    }
+
+    .store-shot {
+      position: relative;
+      flex: 0 0 auto;
+      height: clamp(365px, 56vh, 450px);
+      aspect-ratio: 738 / 1600;
+      border-radius: 20px;
+      overflow: hidden;
+      background: var(--surface-soft);
+      border: 1px solid rgba(21, 21, 21, 0.08);
+      box-shadow: 0 10px 26px rgba(34, 28, 42, 0.12);
+      scroll-snap-align: start;
+      cursor: zoom-in;
+      transition: transform 180ms var(--ease-out), box-shadow 180ms ease;
+    }
+
+    .store-shot:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 34px rgba(34, 28, 42, 0.18);
+    }
+
+    .store-shot img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .store-shot__caption {
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(21, 21, 21, 0.72);
+      color: #fff;
+      font-size: 9.5px;
+      font-weight: 600;
+      text-align: center;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .store-gallery-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 4;
+      width: 40px;
+      height: 40px;
+      display: none;
+      place-items: center;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.96);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      box-shadow: 0 8px 22px rgba(20, 20, 22, 0.18);
+      transition: transform 140ms ease, opacity 140ms ease;
+    }
+
+    .store-gallery-nav:hover {
+      transform: translateY(-50%) scale(1.06);
+    }
+
+    .store-gallery-nav.is-hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .store-gallery-nav--prev {
+      left: -10px;
+    }
+
+    .store-gallery-nav--next {
+      right: -10px;
+    }
+
+    /* Play Store About This App Section */
+    .store-about-lead {
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--text-secondary);
+    }
+
+    .store-about-list {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .store-about-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 13px;
+      border-radius: 18px;
+      background: rgba(247, 246, 248, 0.86);
+      border: 1px solid var(--line);
+    }
+
+    .store-about-item--lime {
+      background: var(--lime-soft);
+      border-color: rgba(169, 188, 85, 0.35);
+    }
+
+    .store-about-item__icon {
+      width: 34px;
+      height: 34px;
+      flex: 0 0 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 11px;
+      background: var(--surface);
+      color: var(--ink-soft);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .store-about-item--lime .store-about-item__icon {
+      background: var(--lime);
+    }
+
+    .store-about-item__title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.3;
+    }
+
+    .store-about-item__text {
+      margin-top: 3px;
+      font-size: 11.5px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+    }
+
+    .store-tags {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .store-tag {
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--ink-muted);
+    }
+
+    /* Data Safety & Info Card (Play Store Bottom Style) */
+    .store-safety-box {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      display: grid;
+      gap: 10px;
+    }
+
+    .store-safety-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--text-secondary);
+    }
+
+    .store-safety-row svg {
+      flex: 0 0 auto;
+      margin-top: 2px;
+      color: var(--ink-soft);
+    }
+
     .install-site-footer {
-      margin-top: 22px;
+      margin-top: 4px;
       text-align: center;
       font-size: 11px;
       color: var(--text-secondary);
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 8px 16px;
+      gap: 8px 18px;
     }
 
     .install-site-footer a:hover {
@@ -646,12 +679,93 @@
       text-decoration: underline;
     }
 
+    /* Screenshot Lightbox Modal */
+    .shot-lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(16, 16, 20, 0.86);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+    }
+
+    .shot-lightbox.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .shot-lightbox__inner {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      max-width: min(92vw, 420px);
+      max-height: 90vh;
+    }
+
+    .shot-lightbox__img {
+      max-height: 76vh;
+      width: auto;
+      border-radius: 22px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+    }
+
+    .shot-lightbox__bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: #fff;
+    }
+
+    .shot-lightbox__cap {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+      text-align: center;
+    }
+
+    .shot-lightbox__btn {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .shot-lightbox__close {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.16);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+    }
+
+    /* Toast */
     .install-toast {
       position: fixed;
       left: 50%;
       bottom: calc(20px + env(safe-area-inset-bottom));
       transform: translateX(-50%) translateY(12px);
-      z-index: 80;
+      z-index: 100;
       width: min(calc(100vw - 28px), 420px);
       display: flex;
       align-items: center;
@@ -683,85 +797,34 @@
     }
 
     @media (min-width: 640px) {
-      .features-grid {
+      .store-main {
+        padding: 20px 20px 36px;
+        gap: 18px;
+      }
+
+      .store-header-card,
+      .store-section {
+        padding: 24px;
+      }
+
+      .store-app-icon {
+        width: 84px;
+        height: 84px;
+        flex-basis: 84px;
+        border-radius: 22px;
+      }
+
+      .store-install-btn {
+        width: fit-content;
+        min-width: 240px;
+      }
+
+      .store-about-list {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
-      .install-footer-cta {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-      }
-    }
-
-    @media (min-width: 768px) {
-      body {
-        padding-bottom: 42px;
-      }
-
-      .install-toast {
-        bottom: 24px;
-      }
-    }
-
-    @media (min-width: 880px) {
-      .install-page-main {
-        padding-top: 28px;
-      }
-
-      .install-hero {
-        grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-        gap: 36px;
-        padding: 18px 0 38px;
-      }
-
-      .install-hero__intro {
-        order: 0;
-      }
-
-      .install-card {
-        padding: 28px;
-      }
-
-      .features-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
-      .feature-card--span2 {
-        grid-column: span 2;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .install-card {
-        padding: 18px;
-      }
-
-      .install-card__app {
-        gap: 10px;
-      }
-
-      .install-card__app-icon {
-        width: 46px;
-        height: 46px;
-        flex: 0 0 46px;
-        border-radius: 14px;
-      }
-
-      .install-card__subtitle {
-        font-size: 10.5px;
-      }
-
-      .install-card .auth-card__badge {
-        flex: 0 0 36px;
-        width: 36px;
-        height: 36px;
-        border-radius: 12px;
-      }
-
-      .install-card .auth-card__badge svg {
-        width: 17px;
-        height: 17px;
+      .store-gallery-nav {
+        display: grid;
       }
     }
 
@@ -774,8 +837,15 @@
         display: none;
       }
 
-      .install-preview-row {
-        grid-template-columns: 1fr;
+      .store-app-row {
+        gap: 13px;
+      }
+
+      .store-app-icon {
+        width: 64px;
+        height: 64px;
+        flex-basis: 64px;
+        border-radius: 18px;
       }
     }
   </style>
@@ -783,7 +853,7 @@
 <body>
   <div class="install-topbar-wrap">
     <header class="install-topbar">
-      <a class="install-topbar__brand" href="/" aria-label="Academix home">
+      <a class="install-topbar__brand" href="/" aria-label="Academix">
         <span class="brand-mark brand-mark--lime brand-mark--sm" aria-hidden="true">
           <img src="/icons/icon-192.png" alt="Academix" width="38" height="38" />
         </span>
@@ -798,84 +868,58 @@
     </header>
   </div>
 
-  <main class="install-page-main">
-    <section class="install-hero" aria-labelledby="install-heading">
-      <div class="install-hero__intro">
-        <span class="install-eyebrow"><span class="dot"></span> Browser PWA Install · Zero App Store Friction</span>
-        <h1 class="install-heading" id="install-heading">
-          <span class="light">Academix,</span>
-          <span class="strong">one tap away.</span>
-        </h1>
-        <p class="install-sub">
-          Install Academix directly from your browser onto Android, iPhone, or desktop. Open your semester notes, PYQs, formula sheets, and syllabus module tracker full screen like a native app.
-        </p>
-
-        <div class="install-hero__pills">
-          <span class="auth-feature">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M12 18h.01"/></svg>
-            Home screen launch
-          </span>
-          <span class="auth-feature">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4.5A2.5 2.5 0 0 1 4.5 2H9a3 3 0 0 1 3 3v16a3 3 0 0 0-3-3H4.5A2.5 2.5 0 0 1 2 15.5Z"/><path d="M22 4.5A2.5 2.5 0 0 0 19.5 2H15a3 3 0 0 0-3 3v16a3 3 0 0 1 3-3h4.5a2.5 2.5 0 0 0 2.5-2.5Z"/></svg>
-            Unit-wise PDFs &amp; PYQs
-          </span>
-          <span class="auth-feature">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1 1 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1Z"/><path d="m9 12 2 2 4-4"/></svg>
-            View-only reader
-          </span>
-        </div>
-
-        <div class="install-preview-row" aria-hidden="true">
-          <div class="install-mini-preview">
-            <span class="install-mini-preview__icon">
-              <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-            </span>
-            <div>
-              <p class="install-mini-preview__title">Global Search</p>
-              <p class="install-mini-preview__meta">Subjects, modules &amp; docs</p>
-            </div>
-          </div>
-          <div class="install-mini-preview">
-            <span class="install-mini-preview__icon install-mini-preview__icon--tint">
-              <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z"/></svg>
-            </span>
-            <div>
-              <p class="install-mini-preview__title">Sync Everywhere</p>
-              <p class="install-mini-preview__meta">Bookmarks &amp; module progress</p>
-            </div>
-          </div>
+  <main class="store-main">
+    <!-- 1. Play Store App Header & Install CTA -->
+    <section class="store-surface store-header-card" aria-labelledby="store-app-title">
+      <div class="store-app-row">
+        <span class="store-app-icon">
+          <img src="/icons/icon-192.png" alt="Academix app icon" width="84" height="84" />
+        </span>
+        <div class="store-app-meta">
+          <h1 class="store-app-title" id="store-app-title">Academix — College Notes</h1>
+          <p class="store-app-dev">Syntax Syndicate · Open Source</p>
+          <p class="store-app-sub">Education · Engineering Study Library · PWA</p>
         </div>
       </div>
 
-      <section class="install-card" id="install-card" aria-label="Install Academix browser app">
-        <div class="install-card__top">
-          <div class="install-card__app">
-            <span class="install-card__app-icon">
-              <img src="/icons/icon-192.png" alt="Academix app icon" width="54" height="54" />
-            </span>
-            <div>
-              <h2 class="install-card__title">Install <strong>Academix.</strong></h2>
-              <p class="install-card__subtitle">Lightweight web app · Android, iOS &amp; Desktop</p>
-            </div>
-          </div>
-          <span class="auth-card__badge" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+      <div class="store-stats" aria-label="App highlights">
+        <div class="store-stat">
+          <span class="store-stat__val">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1 1 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1Z"/><path d="m9 12 2 2 4-4"/></svg>
+            View-only
           </span>
+          <span class="store-stat__lbl">Protected reader</span>
+        </div>
+        <div class="store-stat">
+          <span class="store-stat__val">&lt; 2 MB</span>
+          <span class="store-stat__lbl">Instant PWA</span>
+        </div>
+        <div class="store-stat">
+          <span class="store-stat__val">Free</span>
+          <span class="store-stat__lbl">All semesters</span>
+        </div>
+      </div>
+
+      <div class="store-install-area">
+        <div class="store-status-row">
+          <div class="install-status-badge" id="install-status-badge" role="status">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            <span id="install-status-text">Checking browser install availability…</span>
+          </div>
+          <button class="store-help-toggle" type="button" id="toggle-install-guide" aria-expanded="false" aria-controls="install-guide">
+            <span>How to install</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
         </div>
 
-        <div class="install-status-badge" id="install-status-badge" role="status">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
-          <span id="install-status-text">Checking browser install availability…</span>
-        </div>
-
-        <button class="install-primary-btn" type="button" id="install-app-btn">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M12 18h.01"/></svg>
-          <span id="install-app-btn-label">Install Academix App</span>
+        <button class="store-install-btn" type="button" id="install-app-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+          <span id="install-app-btn-label">Install</span>
         </button>
 
-        <div class="install-guide" id="install-guide">
+        <div class="install-guide" id="install-guide" hidden>
           <div class="install-guide__head">
-            <span class="install-guide__title">How browser install works</span>
+            <span class="install-guide__title">Install from your browser menu</span>
             <div class="install-os-tabs" role="tablist" aria-label="Choose your device">
               <button class="install-os-tab" type="button" data-os-tab="android">Android</button>
               <button class="install-os-tab" type="button" data-os-tab="ios">iPhone / iPad</button>
@@ -884,100 +928,185 @@
           </div>
           <ol class="install-steps-list" id="install-steps-list"></ol>
         </div>
-
-        <p class="install-card__foot">Installs the official Academix Progressive Web App straight from your browser. No separate download or APK needed.</p>
-      </section>
+      </div>
     </section>
 
-    <section class="features-section" aria-labelledby="features-heading">
-      <div class="features-head">
-        <span class="features-head__eyebrow">Everything included inside Academix</span>
-        <h2 class="features-head__title" id="features-heading">Built to make studying <strong>lighter.</strong></h2>
-        <p class="features-head__sub">Every feature inside Academix is designed so you spend less time hunting for PDFs and more time understanding modules.</p>
-      </div>
-
-      <div class="features-grid">
-        <article class="feature-card feature-card--lime">
-          <span class="feature-card__icon" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 10.9 12 6 2.6 10.9a1 1 0 0 0 0 1.8L12 18l9.4-5.3a1 1 0 0 0 0-1.8Z"/><path d="M6 12.5V17c0 1 2.7 3 6 3s6-2 6-3v-4.5"/><path d="M22 10v6"/></svg>
+    <!-- 2. Play Store Screenshots Carousel -->
+    <section class="store-surface store-section" aria-labelledby="gallery-heading">
+      <div class="store-section__head">
+        <div class="store-section__title-wrap">
+          <h2 class="store-section__title" id="gallery-heading">App preview</h2>
+          <span class="store-section__arrow" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
           </span>
-          <h3 class="feature-card__title">Year, Semester &amp; Branch Setup</h3>
-          <p class="feature-card__text">Pick your academic year, semester, and engineering branch once. Home and Library tailor every subject card to your curriculum automatically.</p>
-        </article>
-
-        <article class="feature-card">
-          <span class="feature-card__icon" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
-          </span>
-          <h3 class="feature-card__title">Main Notes First + Helping Docs</h3>
-          <p class="feature-card__text">Every subject puts the main notes PDF front and center, with filterable PYQs, formula sheets, syllabi, lab manuals, and assignments underneath.</p>
-        </article>
-
-        <article class="feature-card">
-          <span class="feature-card__icon" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          </span>
-          <h3 class="feature-card__title">Global Instant Search</h3>
-          <p class="feature-card__text">Find any subject, subject code, module topic, or document across every branch and semester in milliseconds straight from Home or Library.</p>
-        </article>
-
-        <article class="feature-card feature-card--dark">
-          <span class="feature-card__icon" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1 1 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1Z"/><path d="m9 12 2 2 4-4"/></svg>
-          </span>
-          <h3 class="feature-card__title">Protected View-Only PDF Reader</h3>
-          <p class="feature-card__text">Distraction-free full-screen reader with smooth zoom controls, keyboard shortcuts, and view-only protection to respect contributor ownership.</p>
-        </article>
-
-        <article class="feature-card">
-          <span class="feature-card__icon" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.8 10A10 10 0 1 1 17 3.3"/><path d="m9 11 3 3L22 4"/></svg>
-          </span>
-          <h3 class="feature-card__title">Live Module Tracker</h3>
-          <p class="feature-card__text">Check off each completed unit right inside any subject page and watch your live semester completion ring update automatically on Home.</p>
-        </article>
-
-        <article class="feature-card">
-          <span class="feature-card__icon" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z"/></svg>
-          </span>
-          <h3 class="feature-card__title">Bookmarks &amp; Continue Reading</h3>
-          <p class="feature-card__text">Save priority subjects and PDFs for exam prep and jump straight back into your most recently viewed notes from the top of Home.</p>
-        </article>
-
-        <article class="feature-card feature-card--span2 feature-card--lime">
-          <span class="feature-card__icon" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
-          </span>
-          <h3 class="feature-card__title">Contribute Notes via Your Google Drive</h3>
-          <p class="feature-card__text">Have helpful notes or solved PYQs? Open Profile → Contribute to upload PDFs directly from your Google Drive (or share a Drive link), track admin review status, revise if returned, and earn live Contributor credits across subjects and About.</p>
-        </article>
-
-        <article class="feature-card">
-          <span class="feature-card__icon" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.4 4.1L7 9l3.6 1.9L12 15l1.4-4.1L17 9l-3.6-1.9Z"/><path d="M5 14l-.8 2.2L2 17l2.2.8L5 20l.8-2.2L8 17l-2.2-.8Z"/></svg>
-          </span>
-          <h3 class="feature-card__title">Fast PWA &amp; Offline Support</h3>
-          <p class="feature-card__text">Built with Service Worker caching and responsive mobile navigation so Academix launches rapidly and stays usable even on spotty campus Wi-Fi.</p>
-        </article>
-      </div>
-
-      <div class="install-footer-cta">
-        <div>
-          <h3 class="install-footer-cta__title">Ready to keep Academix on your home screen?</h3>
-          <p class="install-footer-cta__text">Install from your browser now to launch Academix right from your home screen.</p>
         </div>
-        <div class="install-footer-cta__actions">
-          <button class="btn btn--lime btn--sm" type="button" id="install-footer-btn">Install Academix</button>
+        <span class="store-section__sub">Tap any screen to zoom</span>
+      </div>
+
+      <div class="store-gallery-wrap">
+        <button class="store-gallery-nav store-gallery-nav--prev is-hidden" type="button" id="gallery-prev" aria-label="Previous screenshots">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+
+        <div class="store-gallery" id="store-gallery" role="region" aria-label="App screenshots">
+          <button class="store-shot" type="button" data-shot-index="0" aria-label="View Home dashboard screenshot">
+            <img src="/app-promo-images/home.png" alt="Academix Home dashboard showing module progress and continue reading" loading="eager" />
+            <span class="store-shot__caption">Home &amp; Progress</span>
+          </button>
+          <button class="store-shot" type="button" data-shot-index="1" aria-label="View Library filters screenshot">
+            <img src="/app-promo-images/library.png" alt="Academix Library with year, semester, and branch filters" loading="eager" />
+            <span class="store-shot__caption">Year &amp; Branch Filter</span>
+          </button>
+          <button class="store-shot" type="button" data-shot-index="2" aria-label="View Subject page screenshot">
+            <img src="/app-promo-images/subject.png" alt="Academix Subject page showing Open main notes button and helping documents" loading="lazy" />
+            <span class="store-shot__caption">Subjects &amp; PYQs</span>
+          </button>
+          <button class="store-shot" type="button" data-shot-index="3" aria-label="View Notes PDF reader screenshot">
+            <img src="/app-promo-images/notes.png" alt="Academix protected view-only PDF notes viewer with zoom and full-screen controls" loading="lazy" />
+            <span class="store-shot__caption">View-Only PDF Reader</span>
+          </button>
+          <button class="store-shot" type="button" data-shot-index="4" aria-label="View Profile and Contribute notes screenshot">
+            <img src="/app-promo-images/profile.png" alt="Academix Profile with study setup, bookmarks, and Contribute notes option" loading="lazy" />
+            <span class="store-shot__caption">Profile &amp; Contribute</span>
+          </button>
+        </div>
+
+        <button class="store-gallery-nav store-gallery-nav--next" type="button" id="gallery-next" aria-label="Next screenshots">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- 3. Play Store "About this app" Section -->
+    <section class="store-surface store-section" aria-labelledby="about-app-heading">
+      <div class="store-section__head">
+        <div class="store-section__title-wrap">
+          <h2 class="store-section__title" id="about-app-heading">About this app</h2>
+          <span class="store-section__arrow" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </span>
         </div>
       </div>
 
-      <footer class="install-site-footer">
-        <a href="/#/terms">Terms &amp; Conditions</a>
-        <a href="/#/privacy">Privacy Policy</a>
-      </footer>
+      <p class="store-about-lead">
+        Academix keeps every semester subject, its main notes PDF, previous year question papers, formula sheets, and module syllabus progress in one calm, fast study library — right on your home screen.
+      </p>
+
+      <div class="store-about-list">
+        <article class="store-about-item store-about-item--lime">
+          <span class="store-about-item__icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 10.9 12 6 2.6 10.9a1 1 0 0 0 0 1.8L12 18l9.4-5.3a1 1 0 0 0 0-1.8Z"/><path d="M6 12.5V17c0 1 2.7 3 6 3s6-2 6-3v-4.5"/><path d="M22 10v6"/></svg>
+          </span>
+          <div>
+            <h3 class="store-about-item__title">Year, Semester &amp; Branch Sorted</h3>
+            <p class="store-about-item__text">Pick your academic year, semester, and branch once. Your library adapts every subject list automatically.</p>
+          </div>
+        </article>
+
+        <article class="store-about-item">
+          <span class="store-about-item__icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+          </span>
+          <div>
+            <h3 class="store-about-item__title">Main Notes First + Helping Docs</h3>
+            <p class="store-about-item__text">Open the primary subject PDF in one tap, with filterable PYQs, formula sheets, syllabi, and lab manuals underneath.</p>
+          </div>
+        </article>
+
+        <article class="store-about-item">
+          <span class="store-about-item__icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          </span>
+          <div>
+            <h3 class="store-about-item__title">Global Instant Search</h3>
+            <p class="store-about-item__text">Search across every subject name, code, unit module, and document title straight from Home or Library.</p>
+          </div>
+        </article>
+
+        <article class="store-about-item">
+          <span class="store-about-item__icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1 1 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1Z"/><path d="m9 12 2 2 4-4"/></svg>
+          </span>
+          <div>
+            <h3 class="store-about-item__title">Protected View-Only PDF Reader</h3>
+            <p class="store-about-item__text">Smooth mobile and desktop reader with zoom controls, full screen mode, and view-only protection for contributors.</p>
+          </div>
+        </article>
+
+        <article class="store-about-item">
+          <span class="store-about-item__icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.8 10A10 10 0 1 1 17 3.3"/><path d="m9 11 3 3L22 4"/></svg>
+          </span>
+          <div>
+            <h3 class="store-about-item__title">Live Module Tracker &amp; Bookmarks</h3>
+            <p class="store-about-item__text">Tick completed syllabus modules with live semester progress rings, save bookmarks, and resume your last PDF instantly.</p>
+          </div>
+        </article>
+
+        <article class="store-about-item store-about-item--lime">
+          <span class="store-about-item__icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
+          </span>
+          <div>
+            <h3 class="store-about-item__title">Contribute via Google Drive</h3>
+            <p class="store-about-item__text">Share PDFs directly from your Google Drive in Profile → Contribute, track admin approval, and get credited as Contributor.</p>
+          </div>
+        </article>
+      </div>
+
+      <div class="store-tags" aria-label="App categories">
+        <span class="store-tag">#Engineering Notes</span>
+        <span class="store-tag">#View-Only PDF</span>
+        <span class="store-tag">#PYQs &amp; Formula Sheets</span>
+        <span class="store-tag">#Module Tracker</span>
+        <span class="store-tag">#PWA Ready</span>
+      </div>
     </section>
+
+    <!-- 4. Play Store "Data safety & App info" Section -->
+    <section class="store-surface store-section" aria-labelledby="safety-heading">
+      <div class="store-section__head">
+        <div class="store-section__title-wrap">
+          <h2 class="store-section__title" id="safety-heading">App info &amp; safety</h2>
+        </div>
+      </div>
+
+      <div class="store-safety-box">
+        <div class="store-safety-row">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="10" width="18" height="11" rx="2"/><path d="M7 10V7a5 5 0 0 1 10 0v3"/></svg>
+          <span><strong>No third-party data selling:</strong> Bookmarks and syllabus progress stay private to your signed-in study account.</span>
+        </div>
+        <div class="store-safety-row">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M12 18h.01"/></svg>
+          <span><strong>Browser-installed PWA:</strong> Installs cleanly via Chrome, Edge, or Safari with offline shell caching and zero APK sideload warnings.</span>
+        </div>
+      </div>
+    </section>
+
+    <footer class="install-site-footer">
+      <a href="/#/terms">Terms &amp; Conditions</a>
+      <a href="/#/privacy">Privacy Policy</a>
+    </footer>
   </main>
+
+  <!-- Full-screen Screenshot Lightbox -->
+  <div class="shot-lightbox" id="shot-lightbox" aria-hidden="true" role="dialog" aria-label="Screenshot preview">
+    <button class="shot-lightbox__close" type="button" id="lightbox-close" aria-label="Close preview">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
+    <div class="shot-lightbox__inner">
+      <img class="shot-lightbox__img" id="lightbox-img" src="" alt="" />
+      <div class="shot-lightbox__bar">
+        <button class="shot-lightbox__btn" type="button" id="lightbox-prev" aria-label="Previous screenshot">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="shot-lightbox__cap" id="lightbox-cap"></span>
+        <button class="shot-lightbox__btn" type="button" id="lightbox-next" aria-label="Next screenshot">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <div class="install-toast" id="install-toast" role="status" aria-live="polite">
     <span class="install-toast__dot" aria-hidden="true"></span>
@@ -989,8 +1118,8 @@
       const INSTALL_DISMISSED_KEY = "academix:install-dismissed";
       const OS_GUIDES = {
         android: [
-          "Tap the lime “Install Academix App” button above if prompted by Chrome, Edge, or Samsung Internet.",
-          "If no browser popup appears, open the browser menu (⋮) in the top-right corner.",
+          "Tap the “Install” button above if Chrome, Edge, or Samsung Internet pops up the install dialog.",
+          "If no popup appears, tap the browser menu (⋮) in the top-right corner.",
           "Tap “Install app” or “Add to Home screen” and confirm Install."
         ],
         ios: [
@@ -999,27 +1128,48 @@
           "Scroll down and tap “Add to Home Screen”, then tap “Add”."
         ],
         desktop: [
-          "Click the “Install Academix App” button above when your browser enables one-click install.",
+          "Click the “Install” button above when your browser enables one-click install.",
           "Or click the Install icon in the right side of Chrome or Edge’s address bar.",
           "Confirm “Install” to launch Academix in its own standalone window."
         ]
       };
 
+      const PROMO_SHOTS = [
+        { src: "/app-promo-images/home.png", cap: "Home dashboard, search & live module progress" },
+        { src: "/app-promo-images/library.png", cap: "Year, semester & branch subject library" },
+        { src: "/app-promo-images/subject.png", cap: "Subject notes, PYQs & helping documents" },
+        { src: "/app-promo-images/notes.png", cap: "Protected view-only PDF reader with zoom" },
+        { src: "/app-promo-images/profile.png", cap: "Profile setup, bookmarks & Google Drive contribute" }
+      ];
+
       let deferredInstallPrompt = null;
       let isInstalled = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
       let toastTimer = null;
+      let lightboxIndex = 0;
 
       const installBtn = document.getElementById("install-app-btn");
       const topbarInstallBtn = document.getElementById("topbar-install-btn");
       const installBtnLabel = document.getElementById("install-app-btn-label");
-      const footerInstallBtn = document.getElementById("install-footer-btn");
       const statusBadge = document.getElementById("install-status-badge");
       const statusText = document.getElementById("install-status-text");
       const guideBox = document.getElementById("install-guide");
+      const toggleGuideBtn = document.getElementById("toggle-install-guide");
       const stepsList = document.getElementById("install-steps-list");
       const osTabs = Array.from(document.querySelectorAll("[data-os-tab]"));
       const toastEl = document.getElementById("install-toast");
       const toastText = document.getElementById("install-toast-text");
+
+      const gallery = document.getElementById("store-gallery");
+      const galleryPrev = document.getElementById("gallery-prev");
+      const galleryNext = document.getElementById("gallery-next");
+      const shotBtns = Array.from(document.querySelectorAll("[data-shot-index]"));
+
+      const lightbox = document.getElementById("shot-lightbox");
+      const lightboxImg = document.getElementById("lightbox-img");
+      const lightboxCap = document.getElementById("lightbox-cap");
+      const lightboxClose = document.getElementById("lightbox-close");
+      const lightboxPrev = document.getElementById("lightbox-prev");
+      const lightboxNext = document.getElementById("lightbox-next");
 
       function detectOS() {
         const ua = navigator.userAgent || "";
@@ -1041,6 +1191,13 @@
         }, duration || 4500);
       }
 
+      function setGuideOpen(open, highlight) {
+        if (!guideBox || !toggleGuideBtn) return;
+        guideBox.hidden = !open;
+        toggleGuideBtn.setAttribute("aria-expanded", String(open));
+        guideBox.classList.toggle("is-highlighted", Boolean(open && highlight));
+      }
+
       function renderSteps(os) {
         activeOS = os;
         osTabs.forEach(function (tab) {
@@ -1059,9 +1216,8 @@
             statusBadge.classList.remove("is-ready");
             statusBadge.classList.add("is-installed");
           }
-          if (statusText) statusText.textContent = "Academix is already installed on this device";
-          if (installBtnLabel) installBtnLabel.textContent = "Open Installed App";
-          if (footerInstallBtn) footerInstallBtn.textContent = "Open Academix";
+          if (statusText) statusText.textContent = "Installed on this device";
+          if (installBtnLabel) installBtnLabel.textContent = "Open App";
           if (topbarInstallBtn) topbarInstallBtn.textContent = "Open App";
           return;
         }
@@ -1071,9 +1227,8 @@
             statusBadge.classList.add("is-ready");
             statusBadge.classList.remove("is-installed");
           }
-          if (statusText) statusText.textContent = "Ready for instant 1-tap browser install";
-          if (installBtnLabel) installBtnLabel.textContent = "Install Academix App";
-          if (footerInstallBtn) footerInstallBtn.textContent = "Install Academix";
+          if (statusText) statusText.textContent = "Ready for 1-tap browser install";
+          if (installBtnLabel) installBtnLabel.textContent = "Install";
           if (topbarInstallBtn) topbarInstallBtn.textContent = "Install App";
           return;
         }
@@ -1083,11 +1238,11 @@
         }
         if (statusText) {
           statusText.textContent = activeOS === "ios"
-            ? "Use Safari’s Share → Add to Home Screen below"
-            : "Install via browser popup or “Add to Home Screen”";
+            ? "Safari: Share → Add to Home Screen"
+            : "Install via browser menu";
         }
-        if (installBtnLabel) installBtnLabel.textContent = "Install Academix App";
-        if (footerInstallBtn) footerInstallBtn.textContent = "Install Academix";
+        if (installBtnLabel) installBtnLabel.textContent = "Install";
+        if (topbarInstallBtn) topbarInstallBtn.textContent = "Install App";
       }
 
       async function promptInstall() {
@@ -1110,16 +1265,38 @@
               localStorage.setItem(INSTALL_DISMISSED_KEY, "1");
             } catch (e) {}
             syncInstallUI();
-            showToast("Install cancelled. Use the steps below or tap Install anytime.", 4500);
+            showToast("Install cancelled. Tap “How to install” or Install anytime.", 4500);
           }
           return;
         }
 
-        if (guideBox) {
-          guideBox.classList.add("is-highlighted");
-          guideBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        }
+        setGuideOpen(true, true);
+        if (guideBox) guideBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
         showToast("Use your browser menu and choose “Add to Home Screen”.", 5000);
+      }
+
+      function updateGalleryArrows() {
+        if (!gallery || !galleryPrev || !galleryNext) return;
+        const maxScroll = gallery.scrollWidth - gallery.clientWidth - 4;
+        galleryPrev.classList.toggle("is-hidden", gallery.scrollLeft <= 6);
+        galleryNext.classList.toggle("is-hidden", maxScroll <= 6 || gallery.scrollLeft >= maxScroll);
+      }
+
+      function openLightbox(index) {
+        if (!lightbox || !lightboxImg || !lightboxCap) return;
+        lightboxIndex = (index + PROMO_SHOTS.length) % PROMO_SHOTS.length;
+        const shot = PROMO_SHOTS[lightboxIndex];
+        lightboxImg.src = shot.src;
+        lightboxImg.alt = shot.cap;
+        lightboxCap.textContent = (lightboxIndex + 1) + " / " + PROMO_SHOTS.length + " · " + shot.cap;
+        lightbox.classList.add("is-open");
+        lightbox.setAttribute("aria-hidden", "false");
+      }
+
+      function closeLightbox() {
+        if (!lightbox) return;
+        lightbox.classList.remove("is-open");
+        lightbox.setAttribute("aria-hidden", "true");
       }
 
       osTabs.forEach(function (tab) {
@@ -1128,8 +1305,50 @@
         });
       });
 
-      [installBtn, topbarInstallBtn, footerInstallBtn].forEach(function (btn) {
+      if (toggleGuideBtn && guideBox) {
+        toggleGuideBtn.addEventListener("click", function () {
+          setGuideOpen(guideBox.hidden, false);
+        });
+      }
+
+      [installBtn, topbarInstallBtn].forEach(function (btn) {
         if (btn) btn.addEventListener("click", promptInstall);
+      });
+
+      if (gallery) {
+        gallery.addEventListener("scroll", updateGalleryArrows, { passive: true });
+        window.addEventListener("resize", updateGalleryArrows);
+      }
+      if (galleryPrev && gallery) {
+        galleryPrev.addEventListener("click", function () {
+          gallery.scrollBy({ left: -240, behavior: "smooth" });
+        });
+      }
+      if (galleryNext && gallery) {
+        galleryNext.addEventListener("click", function () {
+          gallery.scrollBy({ left: 240, behavior: "smooth" });
+        });
+      }
+
+      shotBtns.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          openLightbox(Number(btn.dataset.shotIndex || 0));
+        });
+      });
+
+      if (lightboxClose) lightboxClose.addEventListener("click", closeLightbox);
+      if (lightboxPrev) lightboxPrev.addEventListener("click", function () { openLightbox(lightboxIndex - 1); });
+      if (lightboxNext) lightboxNext.addEventListener("click", function () { openLightbox(lightboxIndex + 1); });
+      if (lightbox) {
+        lightbox.addEventListener("click", function (event) {
+          if (event.target === lightbox) closeLightbox();
+        });
+      }
+      document.addEventListener("keydown", function (event) {
+        if (!lightbox || !lightbox.classList.contains("is-open")) return;
+        if (event.key === "Escape") closeLightbox();
+        else if (event.key === "ArrowLeft") openLightbox(lightboxIndex - 1);
+        else if (event.key === "ArrowRight") openLightbox(lightboxIndex + 1);
       });
 
       window.addEventListener("beforeinstallprompt", function (event) {
@@ -1154,7 +1373,7 @@
         }).catch(function () {});
       }
 
-      // Register the root service worker so browser PWA install criteria are satisfied directly here
+      // Register root service worker so browser PWA install criteria work directly on /install-app
       if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
         window.addEventListener("load", function () {
           navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(function () {});
@@ -1163,6 +1382,7 @@
 
       renderSteps(activeOS);
       syncInstallUI();
+      updateGalleryArrows();
     })();
   </script>
 </body>
