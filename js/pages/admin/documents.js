@@ -31,7 +31,14 @@ import {
   toast,
   typeChipHTML,
 } from "../../ui.js";
-import { adminEmptyHTML, adminHeaderHTML, adminPageClose, adminPageOpen } from "./shared.js";
+import {
+  adminEmptyHTML,
+  adminHeaderHTML,
+  adminPageClose,
+  adminPageOpen,
+  bindSubjectPickers,
+  subjectPickerHTML,
+} from "./shared.js";
 
 export async function renderDocuments(main, context) {
   let subjects = [];
@@ -128,10 +135,17 @@ export async function renderDocuments(main, context) {
           ${icon("search")}
           <input class="input" type="search" value="${escapeAttr(search)}" placeholder="Search title, subject, tag, uploader" data-doc-search autocomplete="off" />
         </label>
-        <select class="select" data-doc-subject-filter aria-label="Filter by subject">
-          <option value="all">All subjects</option>
-          ${subjectOptions.map((subject) => `<option value="${escapeAttr(subject.id)}" ${subjectFilter === subject.id ? "selected" : ""}>${escapeHtml(subject.name)} (${escapeHtml(subject.code || "—")})</option>`).join("")}
-        </select>
+        ${subjectPickerHTML({
+          subjects: subjectOptions,
+          years: context.state.years || [],
+          branches: context.state.branches || [],
+          value: subjectFilter,
+          name: "docSubjectFilter",
+          dataAttr: "data-doc-subject-filter",
+          allowAll: true,
+          allLabel: "All subjects",
+          mode: "toolbar",
+        })}
         <select class="select" data-doc-type-filter aria-label="Filter by type">
           <option value="all">All types</option>
           ${DOC_TYPES.map((type) => `<option value="${escapeAttr(type.value)}" ${typeFilter === type.value ? "selected" : ""}>${escapeHtml(type.label)}</option>`).join("")}
@@ -171,9 +185,14 @@ export async function renderDocuments(main, context) {
       search = event.currentTarget.value;
       renderList();
     });
-    main.querySelector("[data-doc-subject-filter]")?.addEventListener("change", (event) => {
-      subjectFilter = event.currentTarget.value;
-      renderList();
+    bindSubjectPickers(main, {
+      subjects,
+      years: context.state.years || [],
+      branches: context.state.branches || [],
+      onChange: (value) => {
+        subjectFilter = value || "all";
+        renderList();
+      },
     });
     main.querySelector("[data-doc-type-filter]")?.addEventListener("change", (event) => {
       typeFilter = event.currentTarget.value;
@@ -331,20 +350,24 @@ export async function renderDocuments(main, context) {
       content: `<div class="admin-editor upload-editor" data-upload-editor>
         ${driveCheckHTML}
         <div class="admin-editor__section">
-          <div class="field-row">
-            <label class="field">
-              <span class="field__label">Subject</span>
-              <select class="select" data-upload-subject ${isReplace ? "disabled" : ""}>
-                ${[...subjects].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""))).map((subject) => `<option value="${escapeAttr(subject.id)}" ${subject.id === defaultSubject ? "selected" : ""}>${escapeHtml(subject.name)} (${escapeHtml(subject.code || "—")})</option>`).join("")}
-              </select>
-            </label>
-            <label class="field">
-              <span class="field__label">Document type</span>
-              <select class="select" data-upload-type ${isReplace ? "disabled" : ""}>
-                ${DOC_TYPES.map((type) => `<option value="${escapeAttr(type.value)}" ${type.value === defaultType ? "selected" : ""}>${escapeHtml(type.label)}</option>`).join("")}
-              </select>
-            </label>
+          <div class="field">
+            <span class="field__label">Subject</span>
+            ${subjectPickerHTML({
+              subjects,
+              years: context.state.years || [],
+              branches: context.state.branches || [],
+              value: defaultSubject,
+              name: "subjectId",
+              dataAttr: "data-upload-subject",
+              disabled: isReplace,
+            })}
           </div>
+          <label class="field">
+            <span class="field__label">Document type</span>
+            <select class="select" data-upload-type ${isReplace ? "disabled" : ""}>
+              ${DOC_TYPES.map((type) => `<option value="${escapeAttr(type.value)}" ${type.value === defaultType ? "selected" : ""}>${escapeHtml(type.label)}</option>`).join("")}
+            </select>
+          </label>
           <div class="upload-zone" data-drop-zone>
             <input type="file" accept="application/pdf,.pdf" ${isReplace ? "" : "multiple"} data-file-input hidden />
             <span class="upload-zone__icon">${icon("upload")}</span>
@@ -380,6 +403,36 @@ export async function renderDocuments(main, context) {
         const cancelButton = sheet.querySelector("[data-cancel]");
         const dropZone = sheet.querySelector("[data-drop-zone]");
         const fileInput = sheet.querySelector("[data-file-input]");
+        const uploadTitleInput = sheet.querySelector("[data-upload-title]");
+        const uploadTypeSelect = sheet.querySelector("[data-upload-type]");
+
+        const syncAutoUploadTitle = (subjectId) => {
+          if (isReplace || queue.length !== 1 || !uploadTitleInput) return;
+          if (uploadTitleInput.value && uploadTitleInput.dataset.manual === "true") return;
+          const subject = subjects.find((item) => item.id === subjectId);
+          const type = uploadTypeSelect?.value || "main";
+          uploadTitleInput.value = subject ? `${subject.name} — ${DOC_TYPE_META[type]?.short || "Document"}` : "";
+          delete uploadTitleInput.dataset.manual;
+        };
+
+        uploadTitleInput?.addEventListener("input", () => {
+          if (uploadTitleInput.value.trim()) uploadTitleInput.dataset.manual = "true";
+          else delete uploadTitleInput.dataset.manual;
+        });
+
+        uploadTypeSelect?.addEventListener("change", () => {
+          const subjectId = sheet.querySelector("[data-upload-subject]")?.value || "";
+          syncAutoUploadTitle(subjectId);
+        });
+
+        bindSubjectPickers(sheet, {
+          subjects,
+          years: context.state.years || [],
+          branches: context.state.branches || [],
+          onChange: (nextSubjectId) => {
+            syncAutoUploadTitle(nextSubjectId);
+          },
+        });
 
         const renderQueue = () => {
           if (!queueElement) return;
@@ -651,20 +704,23 @@ export async function renderDocuments(main, context) {
       size: "wide",
       content: `<form class="admin-editor" data-link-form>
         <div class="admin-editor__section">
-          <div class="field-row">
-            <label class="field">
-              <span class="field__label">Subject</span>
-              <select class="select" name="subjectId" required>
-                ${[...subjects].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""))).map((subject) => `<option value="${escapeAttr(subject.id)}" ${subject.id === defaultSubject ? "selected" : ""}>${escapeHtml(subject.name)} (${escapeHtml(subject.code || "—")})</option>`).join("")}
-              </select>
-            </label>
-            <label class="field">
-              <span class="field__label">Document type</span>
-              <select class="select" name="type">
-                ${DOC_TYPES.map((type) => `<option value="${escapeAttr(type.value)}" ${type.value === "main" ? "selected" : ""}>${escapeHtml(type.label)}</option>`).join("")}
-              </select>
-            </label>
+          <div class="field">
+            <span class="field__label">Subject</span>
+            ${subjectPickerHTML({
+              subjects,
+              years: context.state.years || [],
+              branches: context.state.branches || [],
+              value: defaultSubject,
+              name: "subjectId",
+              placeholder: "Choose a subject…",
+            })}
           </div>
+          <label class="field">
+            <span class="field__label">Document type</span>
+            <select class="select" name="type">
+              ${DOC_TYPES.map((type) => `<option value="${escapeAttr(type.value)}" ${type.value === "main" ? "selected" : ""}>${escapeHtml(type.label)}</option>`).join("")}
+            </select>
+          </label>
           <label class="field">
             <span class="field__label">Google Drive link or file ID</span>
             <input class="input" name="driveLink" required placeholder="https://drive.google.com/file/d/…/view" />
@@ -709,6 +765,11 @@ export async function renderDocuments(main, context) {
         const saveButton = sheet.querySelector("[data-save-link]");
         const linkInput = form.querySelector("[name=driveLink]");
         const check = sheet.querySelector("[data-link-check]");
+        bindSubjectPickers(sheet, {
+          subjects,
+          years: context.state.years || [],
+          branches: context.state.branches || [],
+        });
         sheet.querySelector("[data-cancel]")?.addEventListener("click", () => close());
         sheet.querySelector("[data-check-link]")?.addEventListener("click", async (event) => {
           const button = event.currentTarget;
@@ -727,6 +788,11 @@ export async function renderDocuments(main, context) {
         form.addEventListener("submit", async (event) => {
           event.preventDefault();
           const data = new FormData(form);
+          const subjectId = String(data.get("subjectId") || "").trim();
+          if (!subjectId) {
+            toast("Select a subject for this document.", { type: "error" });
+            return;
+          }
           const fileId = extractDriveId(String(data.get("driveLink") || ""));
           if (!isValidDriveId(fileId)) {
             toast("Enter a valid Google Drive file link or file ID.", { type: "error" });
@@ -769,20 +835,23 @@ export async function renderDocuments(main, context) {
       size: "wide",
       content: `<form class="admin-editor" data-edit-doc-form>
         <div class="admin-editor__section">
-          <div class="field-row">
-            <label class="field">
-              <span class="field__label">Subject</span>
-              <select class="select" name="subjectId" required>
-                ${[...subjects].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""))).map((item) => `<option value="${escapeAttr(item.id)}" ${item.id === document.subjectId ? "selected" : ""}>${escapeHtml(item.name)} (${escapeHtml(item.code || "—")})</option>`).join("")}
-              </select>
-            </label>
-            <label class="field">
-              <span class="field__label">Document type</span>
-              <select class="select" name="type">
-                ${DOC_TYPES.map((type) => `<option value="${escapeAttr(type.value)}" ${type.value === document.type ? "selected" : ""}>${escapeHtml(type.label)}</option>`).join("")}
-              </select>
-            </label>
+          <div class="field">
+            <span class="field__label">Subject</span>
+            ${subjectPickerHTML({
+              subjects,
+              years: context.state.years || [],
+              branches: context.state.branches || [],
+              value: document.subjectId,
+              name: "subjectId",
+              placeholder: "Choose a subject…",
+            })}
           </div>
+          <label class="field">
+            <span class="field__label">Document type</span>
+            <select class="select" name="type">
+              ${DOC_TYPES.map((type) => `<option value="${escapeAttr(type.value)}" ${type.value === document.type ? "selected" : ""}>${escapeHtml(type.label)}</option>`).join("")}
+            </select>
+          </label>
           <label class="field">
             <span class="field__label">Title</span>
             <input class="input" name="title" value="${escapeAttr(document.title || "")}" maxlength="180" required />
@@ -829,6 +898,11 @@ export async function renderDocuments(main, context) {
         const form = sheet.querySelector("[data-edit-doc-form]");
         form.id = "edit-doc-form";
         const saveButton = sheet.querySelector("[data-save-doc]");
+        bindSubjectPickers(sheet, {
+          subjects,
+          years: context.state.years || [],
+          branches: context.state.branches || [],
+        });
         sheet.querySelector("[data-cancel]")?.addEventListener("click", () => close());
         sheet.querySelector("[data-replace-pdf]")?.addEventListener("click", () => {
           close();
@@ -837,6 +911,11 @@ export async function renderDocuments(main, context) {
         form.addEventListener("submit", async (event) => {
           event.preventDefault();
           const data = new FormData(form);
+          const subjectId = String(data.get("subjectId") || "").trim();
+          if (!subjectId) {
+            toast("Select a subject for this document.", { type: "error" });
+            return;
+          }
           setButtonLoading(saveButton, true, "Saving");
           try {
             await saveDocument(document.id, {

@@ -393,6 +393,20 @@ async function driveRequest(path, options = {}, retried = false) {
   return payload;
 }
 
+async function isFolderValid(folderId) {
+  if (!folderId) return false;
+  try {
+    const data = await driveRequest(
+      `files/${encodeURIComponent(folderId)}?fields=id,trashed,mimeType`,
+      { method: "GET" }
+    );
+    return Boolean(data?.id && !data.trashed && data.mimeType === FOLDER_MIME);
+  } catch (error) {
+    if (error?.status === 404 || error?.status === 403) return false;
+    throw error;
+  }
+}
+
 async function findFolder(name, parentId) {
   const q = [
     `name = '${escapeQueryValue(name)}'`,
@@ -411,13 +425,15 @@ async function findFolder(name, parentId) {
 }
 
 async function createFolder(name, parentId) {
+  const cleanName = sanitizeFolderName(name);
+  const metadata = {
+    name: cleanName,
+    mimeType: FOLDER_MIME,
+  };
+  if (parentId) metadata.parents = [parentId];
   const data = await driveRequest("files?fields=id,name", {
     method: "POST",
-    body: JSON.stringify({
-      name: sanitizeFolderName(name),
-      mimeType: FOLDER_MIME,
-      parents: [parentId],
-    }),
+    body: JSON.stringify(metadata),
   });
   if (!data?.id) throw new DriveApiError("Drive did not return a folder ID.");
   return data.id;
@@ -425,50 +441,58 @@ async function createFolder(name, parentId) {
 
 async function persistFolderCache(folders) {
   try {
-    await saveSettings({ driveFolders: folders });
+    await saveSettings({ driveFolders: folders, replaceDriveFolders: true });
   } catch (error) {
     console.warn("Drive folder cache could not be saved.", error);
   }
 }
 
 async function ensureFolderPath(segments = [], options = {}) {
-  const settings = options.settings || await fetchSettings();
-  const existing = options.force
-    ? { ...(settings.driveFolders || {}) }
-    : { ...(settings.driveFolders || {}) };
-  const folders = { ...existing };
-  if (options.force) {
-    delete folders.root;
-    segments.reduce((path, segment) => {
-      const key = path ? `${path}/${segment}` : segment;
-      delete folders[key];
-      return key;
-    }, "");
-  }
+  const ownerEmail = normalizeEmail(options.uploaderEmail || cachedAccount?.emailAddress || "");
+  const settings = options.force ? {} : (options.settings || await fetchSettings());
+  const cachedOwner = normalizeEmail(settings.driveFolders?._owner || "");
+  const ownerChanged = Boolean(ownerEmail && cachedOwner && ownerEmail !== cachedOwner);
 
-  let rootId = folders.root;
-  if (!rootId) {
-    rootId = await findFolder("College Notes", "root");
-    if (!rootId) rootId = await createFolder("College Notes", "root");
-    folders.root = rootId;
-  }
+  const folders = (options.force || ownerChanged)
+    ? (ownerEmail ? { _owner: ownerEmail } : {})
+    : { ...(settings.driveFolders || {}), ...(ownerEmail ? { _owner: ownerEmail } : {}) };
 
-  let parentId = rootId;
-  let path = "";
-  for (const rawSegment of segments) {
-    const segment = sanitizeFolderName(rawSegment);
-    path = path ? `${path}/${segment}` : segment;
-    let folderId = folders[path];
-    if (!folderId) {
-      folderId = await findFolder(segment, parentId);
-      if (!folderId) folderId = await createFolder(segment, parentId);
-      folders[path] = folderId;
+  try {
+    let rootId = folders.root || "";
+    if (rootId && !(await isFolderValid(rootId))) {
+      rootId = "";
     }
-    parentId = folderId;
-  }
+    if (!rootId) {
+      rootId = await findFolder("College Notes", "root");
+      if (!rootId) rootId = await createFolder("College Notes", "root");
+      folders.root = rootId;
+    }
 
-  await persistFolderCache(folders);
-  return { folderId: parentId, folders };
+    let parentId = rootId;
+    let folderPath = "";
+    for (const rawSegment of segments) {
+      const segment = sanitizeFolderName(rawSegment);
+      folderPath = folderPath ? `${folderPath}/${segment}` : segment;
+      let folderId = folders[folderPath] || "";
+      if (folderId && !(await isFolderValid(folderId))) {
+        folderId = "";
+      }
+      if (!folderId) {
+        folderId = await findFolder(segment, parentId);
+        if (!folderId) folderId = await createFolder(segment, parentId);
+        folders[folderPath] = folderId;
+      }
+      parentId = folderId;
+    }
+
+    await persistFolderCache(folders);
+    return { folderId: parentId, folders };
+  } catch (error) {
+    if (!options.force && error instanceof DriveApiError && (error.status === 404 || error.status === 403)) {
+      return ensureFolderPath(segments, { ...options, force: true });
+    }
+    throw error;
+  }
 }
 
 function buildUploadMetadata({ file, folderId, subject, type, uploaderEmail }) {
@@ -721,9 +745,14 @@ export async function uploadPdf({
     throw new UploaderMismatchError(account.emailAddress, expectedUploaderEmail);
   }
 
-  let folderInfo = await ensureFolderPath(folderSegments, { settings: settings || undefined });
+  let folderInfo;
   let finalData;
-  try {
+  const runUpload = async (forceFolders = false) => {
+    folderInfo = await ensureFolderPath(folderSegments, {
+      settings: forceFolders ? undefined : (settings || undefined),
+      uploaderEmail: account.emailAddress,
+      force: forceFolders,
+    });
     const sessionUrl = await initiateResumableSession({
       file,
       folderId: folderInfo.folderId,
@@ -731,18 +760,14 @@ export async function uploadPdf({
       type,
       uploaderEmail: account.emailAddress,
     });
-    finalData = await uploadWithResume({ sessionUrl, file, onProgress, signal });
+    return uploadWithResume({ sessionUrl, file, onProgress, signal });
+  };
+
+  try {
+    finalData = await runUpload(false);
   } catch (error) {
-    if (error instanceof DriveApiError && error.status === 404) {
-      folderInfo = await ensureFolderPath(folderSegments, { force: true });
-      const sessionUrl = await initiateResumableSession({
-        file,
-        folderId: folderInfo.folderId,
-        subject,
-        type,
-        uploaderEmail: account.emailAddress,
-      });
-      finalData = await uploadWithResume({ sessionUrl, file, onProgress, signal });
+    if (error instanceof DriveApiError && (error.status === 404 || error.status === 403)) {
+      finalData = await runUpload(true);
     } else {
       throw error;
     }

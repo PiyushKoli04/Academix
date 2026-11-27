@@ -198,7 +198,19 @@ export async function saveSettings(patch) {
     payload.driveFolders = folders;
   }
   if (!Object.keys(payload).length) return;
-  await setDoc(doc(db, "settings", "app"), payload, { merge: true });
+  if (patch.replaceDriveFolders) {
+    try {
+      await updateDoc(doc(db, "settings", "app"), payload);
+    } catch (error) {
+      if (error?.code === "not-found") {
+        await setDoc(doc(db, "settings", "app"), payload, { merge: true });
+      } else {
+        throw error;
+      }
+    }
+  } else {
+    await setDoc(doc(db, "settings", "app"), payload, { merge: true });
+  }
   invalidateCache("settings");
 }
 
