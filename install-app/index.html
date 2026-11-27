@@ -922,10 +922,15 @@
           <span id="install-app-btn-label">Install</span>
         </button>
 
-        <a class="store-install-btn" id="open-app-link" href="/#/home" hidden>
+        <a class="store-install-btn" id="open-app-link" href="/#/home" target="_blank" rel="noopener noreferrer" hidden>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M12 18h.01"/></svg>
           <span>Open App</span>
         </a>
+
+        <div class="installed-callout" id="installed-callout" hidden style="padding:14px 16px;border-radius:18px;background:var(--green-soft);border:1px solid rgba(76,175,80,0.35);color:#1f4e1a;font-size:12.5px;line-height:1.5;">
+          <strong style="display:block;font-size:13.5px;margin-bottom:3px;">Academix is installed on your phone</strong>
+          <span>Close this browser tab and tap the <strong>Academix</strong> icon on your <strong>Home Screen</strong> or <strong>App Drawer</strong> to launch the full-screen app. Mobile browsers do not allow web tabs to launch a newly installed PWA directly.</span>
+        </div>
 
         <p class="store-open-hint" id="open-app-hint" hidden style="font-size:11px;color:var(--text-secondary);line-height:1.45;"></p>
 
@@ -1163,6 +1168,7 @@
 
       const installBtn = document.getElementById("install-app-btn");
       const openAppLink = document.getElementById("open-app-link");
+      const installedCallout = document.getElementById("installed-callout");
       const openAppHint = document.getElementById("open-app-hint");
       const topbarInstallBtn = document.getElementById("topbar-install-btn");
       const topbarOpenLink = document.getElementById("topbar-open-link");
@@ -1228,36 +1234,19 @@
         }).join("");
       }
 
-      function getAppLaunchUrl() {
-        const homeUrl = location.origin + "/#/home";
-        if (deviceOS === "android") {
-          const scheme = (location.protocol || "https:").replace(":", "");
-          return "intent://" + location.host + "/#Intent;scheme=" + scheme
-            + ";action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE"
-            + ";S.browser_fallback_url=" + encodeURIComponent(homeUrl)
-            + ";end";
-        }
-        return homeUrl;
-      }
-
       function syncOpenLinks() {
-        const targetHref = getAppLaunchUrl();
-        const isDesktop = deviceOS === "desktop";
+        const homeUrl = location.origin + "/#/home";
         [openAppLink, topbarOpenLink].forEach(function (link) {
           if (!link) return;
-          link.href = targetHref;
-          if (isDesktop) {
-            link.target = "_blank";
-            link.rel = "noopener noreferrer";
-          } else {
-            link.removeAttribute("target");
-            link.removeAttribute("rel");
-          }
+          link.href = homeUrl;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
         });
       }
 
       function syncInstallUI() {
         syncOpenLinks();
+        const isDesktop = deviceOS === "desktop";
         if (isInstalled) {
           if (statusBadge) {
             statusBadge.classList.remove("is-ready");
@@ -1268,22 +1257,22 @@
             installBtn.hidden = true;
             installBtn.disabled = false;
           }
-          if (openAppLink) openAppLink.hidden = false;
           if (topbarInstallBtn) topbarInstallBtn.hidden = true;
-          if (topbarOpenLink) topbarOpenLink.hidden = false;
+          if (openAppLink) openAppLink.hidden = !isDesktop;
+          if (topbarOpenLink) topbarOpenLink.hidden = !isDesktop;
+          if (installedCallout) installedCallout.hidden = isDesktop;
           if (openAppHint) {
-            openAppHint.hidden = false;
-            openAppHint.textContent = deviceOS === "android"
-              ? "Tap Open App and choose “Academix” when Android asks, or open Academix from your home screen."
-              : deviceOS === "ios"
-                ? "Launch Academix anytime from its icon on your iPhone/iPad Home Screen."
-                : "Tap Open App to switch into your installed Academix window.";
+            openAppHint.hidden = !isDesktop;
+            openAppHint.textContent = isDesktop
+              ? "Click Open App to switch into your installed Academix window."
+              : "";
           }
           return;
         }
 
         if (openAppLink) openAppLink.hidden = true;
         if (topbarOpenLink) topbarOpenLink.hidden = true;
+        if (installedCallout) installedCallout.hidden = true;
         if (openAppHint) openAppHint.hidden = true;
         if (installBtn) installBtn.hidden = false;
         if (topbarInstallBtn) topbarInstallBtn.hidden = false;
@@ -1357,13 +1346,13 @@
           const found = await checkRelatedInstalled();
           if (found) {
             markInstalled();
-            showToast("Academix is installed! Tap Open App.", 4500);
+            showToast(deviceOS === "desktop" ? "Academix is installed! Click Open App." : "Academix installed! Open it from your Home Screen.", 5000);
             return;
           }
-          // After ~9 seconds, unlock Open App even if the browser omits appinstalled/relatedApps
+          // After ~9 seconds, finish transition even if the browser omits appinstalled/relatedApps
           if (attempts >= 9) {
             markInstalled();
-            showToast("Check your home screen or tap Open App.", 4500);
+            showToast("Academix installed! Check your Home Screen or App Drawer.", 5000);
           }
         }, 1000);
       }
@@ -1481,7 +1470,7 @@
       window.addEventListener("appinstalled", function () {
         deferredInstallPrompt = null;
         markInstalled();
-        showToast("Academix was added! Tap Open App to launch it.", 4500);
+        showToast(deviceOS === "desktop" ? "Academix added! Click Open App." : "Academix installed! Open it from your Home Screen.", 5000);
       });
 
       checkRelatedInstalled().then(function (found) {
