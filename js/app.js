@@ -69,6 +69,9 @@ function captureRedirectTarget() {
 }
 
 captureRedirectTarget();
+if (location.hash === "#/install-app") {
+  window.location.replace("./install-app/");
+}
 initTheme();
 setupGlobalListeners();
 registerServiceWorker();
@@ -252,6 +255,10 @@ async function renderRoute() {
   if (route.path === "/" || route.path === "/login") {
     history.replaceState(null, "", "#/home");
     route = parseRoute();
+  }
+  if (route.path === "/install-app") {
+    window.location.replace("./install-app/");
+    return;
   }
 
   if (route.path.startsWith("/admin") && !isAdmin()) {

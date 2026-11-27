@@ -49,6 +49,16 @@ export const TERMS_AND_CONDITIONS_HTML = `
       <h3 class="legal-section__title">7. Modifications to Terms</h3>
       <p>We reserve the right to amend these Terms and Conditions at any time. Continued use of Academix following any updates constitutes acceptance of the modified Terms.</p>
     </section>
+
+    <section class="legal-section">
+      <h3 class="legal-section__title">8. Examination Conduct &amp; Misuse Disclaimer</h3>
+      <p>Academix is intended solely for legitimate academic learning and examination preparation. We strictly do not endorse, encourage, or support any form of academic dishonesty, cheating, or improper conduct during examinations. If any student or user utilizes study materials from this platform in connection with any unauthorized or disreputable activities during examinations, Academix, its maintainers, and its contributors assume zero responsibility or liability for such actions or any resulting academic or disciplinary consequences.</p>
+    </section>
+
+    <section class="legal-section">
+      <h3 class="legal-section__title">9. Open-Source Status &amp; Institutional Non-Affiliation</h3>
+      <p>Academix is an independent, open-source educational platform. It is not affiliated with, associated with, endorsed by, sponsored by, or officially connected to any college, university, educational institution, or examination body in any manner whatsoever. Any references to academic years, semesters, branches, or subjects are used solely for organizational clarity.</p>
+    </section>
   </div>
 `;
 

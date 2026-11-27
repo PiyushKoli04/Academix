@@ -1831,6 +1831,12 @@ function buildSitemap(eligibleSubjects, slugMap, activeBranches, branchSlugMap) 
     <lastmod>${today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${DOMAIN}/install-app/</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>`;
 
   for (const branch of activeBranches) {
@@ -1868,6 +1874,7 @@ function buildRobotsTxt() {
 User-agent: *
 Allow: /
 Allow: /notes/
+Allow: /install-app/
 
 # Private/internal directories
 Disallow: /app/

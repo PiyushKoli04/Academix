@@ -1,10 +1,12 @@
-const CACHE_VERSION = "academix-v14";
+const CACHE_VERSION = "academix-v20";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const FONT_CACHE = `${CACHE_VERSION}-fonts`;
 
 const APP_SHELL = [
   "./",
   "./index.html",
+  "./install-app/",
+  "./install-app/index.html",
   "./manifest.json",
   "./css/base.css",
   "./css/components.css",
