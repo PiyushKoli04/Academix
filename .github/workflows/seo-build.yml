@@ -18,12 +18,14 @@ on:
     types:
       - seo-update
 
-  # Also rebuild when generator template or exported catalog snapshot is pushed
+  # Also rebuild when generator, validator, workflow, or exported catalog snapshot is pushed
   push:
     branches: [main, master]
     paths:
       - "seo/catalog.json"
       - "seo/generate.js"
+      - "seo/validate.js"
+      - ".github/workflows/seo-build.yml"
 
 # Prevent concurrent deployments from conflicting
 concurrency:
@@ -99,5 +101,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add notes/ sitemap.xml robots.txt
-          git commit -m "chore(seo): sync live Firestore subject pages and sitemap [skip ci]"
+          git commit -m "chore(seo): sync live Firestore subject pages and sitemap"
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
           git push

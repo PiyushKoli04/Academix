@@ -232,7 +232,7 @@ async function fetchViaFirebaseUserAuth(email, password) {
 }
 
 function loadFromCatalogJson(filePath) {
-  const raw = fs.readFileSync(filePath, 'utf8');
+  const raw = fs.readFileSync(filePath, 'utf8').replace(/^\uFEFF/, '');
   const data = JSON.parse(raw);
   return {
     source: `Catalog Snapshot (${path.relative(ROOT_DIR, filePath)})`,
@@ -377,18 +377,22 @@ function toSlug(text) {
     .replace(/^-|-$/g, '');
 }
 
-function buildSlugMap(items, keyFn = (x) => x.name, fallbackFn = (x) => x.code || x.id) {
-  const seen = new Map();
+function buildSlugMap(items, keyFn = (x) => x.name, fallbackFn = (x) => x.code || x.id, reserved = new Set()) {
+  const seen = new Set(reserved);
   const result = new Map();
 
   for (const item of items) {
-    let slug = toSlug(keyFn(item)) || toSlug(fallbackFn(item)) || toSlug(item.id);
-    if (!slug) slug = 'item';
+    const base = toSlug(keyFn(item)) || toSlug(fallbackFn(item)) || toSlug(item.id) || 'item';
+    let slug = base;
     if (seen.has(slug)) {
       const suffix = toSlug(fallbackFn(item)) || toSlug(item.id);
-      slug = suffix && !slug.endsWith(suffix) ? `${slug}-${suffix}` : `${slug}-${seen.size + 1}`;
+      slug = suffix && !base.endsWith(suffix) ? `${base}-${suffix}` : `${base}-2`;
+      let counter = 2;
+      while (seen.has(slug)) {
+        slug = `${base}-${suffix ? `${suffix}-` : ''}${counter++}`;
+      }
     }
-    seen.set(slug, item.id);
+    seen.add(slug);
     result.set(item.id, slug);
   }
   return result;
@@ -411,11 +415,16 @@ function isEligibleSubject(subject) {
 function toISODate(ts) {
   if (!ts) return new Date().toISOString().split('T')[0];
   if (typeof ts.toDate === 'function') return ts.toDate().toISOString().split('T')[0];
-  if (typeof ts._seconds === 'number') return new Date(ts._seconds * 1000).toISOString().split('T')[0];
+  const secs = typeof ts._seconds === 'number' ? ts._seconds : typeof ts.seconds === 'number' ? ts.seconds : null;
+  if (secs !== null) return new Date(secs * 1000).toISOString().split('T')[0];
   if (ts instanceof Date && !Number.isNaN(ts.getTime())) return ts.toISOString().split('T')[0];
   const parsed = new Date(ts);
   if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
   return new Date().toISOString().split('T')[0];
+}
+
+function safeJsonLd(obj) {
+  return JSON.stringify(obj).replace(/</g, '\\u003c');
 }
 
 function esc(str) {
@@ -1278,9 +1287,74 @@ function footerHTML() {
 // Page Templates
 // ---------------------------------------------------------------------------
 
-function buildSubjectPage(subject, slug, yearsMap, branchesMap, relatedSubjects, slugMap, branchSlugMap) {
+function buildSubjectSeoMeta(subject, slug, rawYearName, semesterLabel, branches, modules, docs, seoContext) {
+  const normalizedName = String(subject.name || '').replace(/\s+/g, ' ').trim();
+  const normalizedCode = String(subject.code || '').replace(/\s+/g, ' ').trim();
+  const branchText = branches.map((b) => String(b.name || '').trim()).filter(Boolean).join(', ');
+  const shortBranches = branches.map((b) => String(b.shortName || b.name || '').trim()).filter(Boolean).join('/');
+  const isDuplicateName = (seoContext?.nameCounts?.get(normalizedName.toLowerCase()) || 0) > 1;
+
+  const titleQualifiers = [normalizedCode, semesterLabel, rawYearName, shortBranches, slug].filter(Boolean);
+  let rawTitle = isDuplicateName && titleQualifiers[0]
+    ? `${normalizedName} (${titleQualifiers[0]}) Notes PDF — Study Material & PYQs | Academix`
+    : `${normalizedName} Notes PDF — Study Material & PYQs | Academix`;
+  let qIdx = isDuplicateName ? 1 : 0;
+  while (seoContext?.usedTitles?.has(esc(rawTitle))) {
+    const tag = titleQualifiers[qIdx++] || `Part ${qIdx}`;
+    rawTitle = `${normalizedName} (${tag}) Notes PDF — Study Material & PYQs | Academix`;
+  }
+  const title = esc(rawTitle);
+  seoContext?.usedTitles?.add(title);
+
+  const customDesc = String(subject.description || '').replace(/\s+/g, ' ').trim();
+  const subjectLead = normalizedCode ? `${normalizedName} (${normalizedCode})` : normalizedName;
+  const descParts = [];
+  if (customDesc) {
+    if (!customDesc.toLowerCase().includes(normalizedName.toLowerCase())) {
+      descParts.push(`${subjectLead}:`);
+    }
+    descParts.push(customDesc);
+  } else {
+    descParts.push(`${subjectLead} engineering notes PDF.`);
+  }
+  if (modules.length || docs.length) {
+    descParts.push(
+      `Includes ${modules.length} unit${modules.length === 1 ? '' : 's'} and ${docs.length} study document${docs.length === 1 ? '' : 's'}.`
+    );
+  }
+  if (rawYearName || semesterLabel) {
+    descParts.push([rawYearName, semesterLabel].filter(Boolean).join(' · '));
+  }
+  if (branchText) descParts.push(`for ${branchText}.`);
+
+  const fullDesc = descParts.join(' ').replace(/\s+/g, ' ').trim();
+  const fit158 = (text) => String(text || '').replace(/\s+/g, ' ').trim().substring(0, 158).trim();
+  let rawMetaDesc = fit158(fullDesc);
+
+  if (seoContext?.usedDescriptions?.has(esc(rawMetaDesc))) {
+    const uniqueQualifier = [normalizedCode, semesterLabel, rawYearName, shortBranches, slug].filter(Boolean).join(' · ');
+    const candidate = `${normalizedName} (${uniqueQualifier}): ${customDesc || fullDesc}`;
+    rawMetaDesc = fit158(candidate);
+    let n = 2;
+    while (seoContext.usedDescriptions.has(esc(rawMetaDesc))) {
+      const tag = ` [${slug}-${n++}]`;
+      rawMetaDesc = `${fit158(candidate.substring(0, Math.max(20, 158 - tag.length)))}${tag}`;
+    }
+  }
+  const metaDescription = esc(rawMetaDesc);
+  seoContext?.usedDescriptions?.add(metaDescription);
+
+  return {
+    title,
+    metaDescription,
+    jsonLdDescription: fullDesc.substring(0, 260),
+  };
+}
+
+function buildSubjectPage(subject, slug, yearsMap, branchesMap, relatedSubjects, slugMap, branchSlugMap, seoContext) {
   const year = yearsMap.get(subject.yearId);
-  const yearName = year ? esc(year.name) : '';
+  const rawYearName = year ? String(year.name || '').trim() : '';
+  const yearName = rawYearName ? esc(rawYearName) : '';
   const semesterLabel = subject.semester ? `Sem ${subject.semester}` : '';
   const branches = (subject.branchIds || []).map((id) => branchesMap.get(id)).filter(Boolean);
   const subjectColor = safeHexColor(subject.color, '#F0F5D9');
@@ -1291,18 +1365,16 @@ function buildSubjectPage(subject, slug, yearsMap, branchesMap, relatedSubjects,
   const docs = [...(subject._documents || [])].sort((a, b) => (b.isMain ? 1 : 0) - (a.isMain ? 1 : 0));
   const mainDoc = docs.find((d) => d.isMain) || docs.find((d) => d.type === 'main') || docs[0] || null;
 
-  const title = `${esc(subject.name)} Notes PDF — Study Material & PYQs | Academix`;
-  const branchText = branches.map((b) => b.name).join(', ');
-  const descParts = [];
-  if (subject.description) descParts.push(subject.description);
-  if (modules.length || docs.length) {
-    descParts.push(
-      `Includes ${modules.length} unit${modules.length === 1 ? '' : 's'} and ${docs.length} study document${docs.length === 1 ? '' : 's'}.`
-    );
-  }
-  if (yearName) descParts.push(yearName);
-  if (branchText) descParts.push(`for ${branchText}.`);
-  const metaDescription = esc(descParts.join(' ').substring(0, 158));
+  const { title, metaDescription, jsonLdDescription } = buildSubjectSeoMeta(
+    subject,
+    slug,
+    rawYearName,
+    semesterLabel,
+    branches,
+    modules,
+    docs,
+    seoContext
+  );
 
   const canonicalURL = `${DOMAIN}/notes/${slug}/`;
   const lastmod = toISODate(subject.updatedAt || subject.createdAt);
@@ -1311,7 +1383,7 @@ function buildSubjectPage(subject, slug, yearsMap, branchesMap, relatedSubjects,
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: `${subject.name} Notes PDF`,
-    description: descParts.join(' ').substring(0, 260),
+    description: jsonLdDescription,
     url: canonicalURL,
     dateModified: lastmod,
     publisher: { '@type': 'Organization', name: 'Academix', url: DOMAIN },
@@ -1439,8 +1511,8 @@ function buildSubjectPage(subject, slug, yearsMap, branchesMap, relatedSubjects,
   <meta name="twitter:description" content="${metaDescription}" />
   <meta name="twitter:image" content="${OG_IMAGE}" />
 
-  <script type="application/ld+json">${JSON.stringify(jsonLdWebPage)}</script>
-  <script type="application/ld+json">${JSON.stringify(breadcrumbJsonLd)}</script>
+  <script type="application/ld+json">${safeJsonLd(jsonLdWebPage)}</script>
+  <script type="application/ld+json">${safeJsonLd(breadcrumbJsonLd)}</script>
 
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon.png" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
@@ -1577,7 +1649,7 @@ function buildBranchPage(branch, bSlug, branchSubjects, yearsMap, slugMap, allBr
   <meta property="og:site_name" content="Academix" />
   <meta property="og:image" content="${OG_IMAGE}" />
 
-  <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+  <script type="application/ld+json">${safeJsonLd(jsonLd)}</script>
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -1784,7 +1856,7 @@ function buildNotesIndexPage(eligibleSubjects, yearsMap, branches, slugMap, bran
   <meta name="twitter:description" content="${esc(description)}" />
   <meta name="twitter:image" content="${OG_IMAGE}" />
 
-  <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+  <script type="application/ld+json">${safeJsonLd(jsonLd)}</script>
 
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon.png" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
@@ -1973,8 +2045,19 @@ async function main() {
     skipped.forEach((s) => console.log(`    — ${s.name}: ${s.reason}`));
   }
 
-  const slugMap = buildSlugMap(eligible);
+  const slugMap = buildSlugMap(eligible, (x) => x.name, (x) => x.code || x.id, new Set(['branch']));
   const branchSlugMap = buildSlugMap(branches, (b) => b.name, (b) => b.shortName || b.id);
+
+  const nameCounts = new Map();
+  for (const sub of eligible) {
+    const key = String(sub.name || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    nameCounts.set(key, (nameCounts.get(key) || 0) + 1);
+  }
+  const seoContext = {
+    nameCounts,
+    usedTitles: new Set(),
+    usedDescriptions: new Set(),
+  };
 
   // Determine branches that actually have >= 1 eligible subject
   const activeBranches = branches.filter((b) =>
@@ -2009,7 +2092,8 @@ async function main() {
       branchesMap,
       related,
       slugMap,
-      branchSlugMap
+      branchSlugMap,
+      seoContext
     );
     writeFileSafe(path.join(targetNotesDir, slug, 'index.html'), html);
     generated++;

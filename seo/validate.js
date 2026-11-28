@@ -161,10 +161,12 @@ function validateHomepage() {
 // ---------------------------------------------------------------------------
 
 function validateUiStyleTokens(html, label) {
-  const hasLime = html.includes('#c9db74');
-  const hasInkSoft = html.includes('#1c1c1e');
-  const hasCanvasBg = html.includes('#f4f3f5');
-  const hasNoTailwindGreen = !html.includes('#16a34a');
+  const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+  const styleBlock = styleMatch ? styleMatch[1] : html;
+  const hasLime = styleBlock.includes('#c9db74');
+  const hasInkSoft = styleBlock.includes('#1c1c1e');
+  const hasCanvasBg = styleBlock.includes('#f4f3f5');
+  const hasNoTailwindGreen = !styleBlock.includes('#16a34a');
   assert(
     hasLime && hasInkSoft && hasCanvasBg && hasNoTailwindGreen,
     `${label} matches official Academix UI style palette`,
@@ -224,7 +226,9 @@ function validateGeneratedNotesPages(sitemapUrls) {
       continue;
     }
 
-    if (!html.includes('open-notes-btn') || !html.includes('#c9db74') || html.includes('#16a34a')) {
+    const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+    const styleBlock = styleMatch ? styleMatch[1] : html;
+    if (!html.includes('open-notes-btn') || !styleBlock.includes('#c9db74') || styleBlock.includes('#16a34a')) {
       fail(`notes/${dirName} UI style consistency`, 'Does not match Academix UI tokens');
       continue;
     }
